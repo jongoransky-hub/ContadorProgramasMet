@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#111A22">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Programas MET">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' fill='%23111A22'/%3E%3Crect x='10' y='24' width='10' height='16' fill='%2319AEE3'/%3E%3Crect x='22' y='24' width='10' height='16' fill='%23E2127F'/%3E%3Crect x='34' y='24' width='10' height='16' fill='%23FFD21A'/%3E%3Crect x='46' y='24' width='10' height='16' fill='%23FFFFFF'/%3E%3C/svg%3E">
 <title>Programas de mano MET</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
@@ -39,7 +44,7 @@
 *, *::before, *::after { box-sizing: border-box; }
 [hidden] { display: none !important; }
 body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--f-body); -webkit-text-size-adjust: 100%; }
-.wrap { max-width: 760px; margin-inline: auto; padding-inline: 16px; padding-block: 20px 56px; display: flex; flex-direction: column; gap: 16px; }
+.wrap { max-width: 760px; margin-inline: auto; padding-inline: 16px; padding-block: 14px 56px; display: flex; flex-direction: column; gap: 12px; }
 h1, h2, h3, p, dl, dd, ul { margin: 0; }
 ul { padding: 0; list-style: none; }
 button, input, select { font: inherit; color: inherit; }
@@ -47,13 +52,14 @@ button, input, select { font: inherit; color: inherit; }
 .num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
 
 /* Cabecera */
-.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
-.head h1 { font: 800 30px/1 var(--f-display); font-stretch: 78%; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
-.head .sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
-.tintas { display: flex; gap: 3px; margin-bottom: 10px; }
-.tintas i { width: 14px; height: 14px; display: block; }
+.head { display: flex; justify-content: space-between; align-items: center; gap: 4px 12px; flex-wrap: wrap; }
+.marca { display: flex; align-items: center; gap: 9px; }
+.head h1 { font: 800 19px/1 var(--f-display); font-stretch: 80%; text-transform: uppercase; letter-spacing: .02em; }
+.tintas { display: flex; gap: 2px; }
+.tintas i { width: 9px; height: 9px; display: block; }
 .tintas .c { background: var(--c); } .tintas .m { background: var(--m); } .tintas .y { background: var(--y); } .tintas .k { background: var(--k); }
-.estado-con { font-size: 12px; color: var(--muted); }
+.estado-con { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 8px; }
+.estado-con .enlace { font-size: 12px; padding: 4px 0; }
 .estado-con strong { color: var(--ink); font-weight: 600; }
 
 /* Navegación */
@@ -140,12 +146,22 @@ td { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
 .o-a { font-size: 14px; }
 .rojo + .g-b .o-a { color: var(--crit); font-weight: 600; }
 .amarillo + .g-b .o-a { color: var(--warn); font-weight: 600; }
-.o-c { font-size: 12px; color: var(--muted); }
-.o-c.viejo { color: var(--warn); font-weight: 600; }
+.o-c { align-self: flex-start; display: inline-block; margin-top: 4px; padding: 4px 10px 4px 8px; background: var(--neutral-bg); color: var(--ink); font-size: 13px; }
+.o-c::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 7px; background: var(--c); }
+.o-c strong { font-weight: 600; }
+.o-c.viejo { background: var(--warn-bg); color: var(--warn); font-weight: 600; }
+.o-c.viejo::before { background: var(--warn); }
 .o-r { flex: none; text-align: right; }
 .o-w { display: block; font: 800 32px/1 var(--f-display); font-stretch: 80%; font-variant-numeric: tabular-nums; }
-.o-u { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.o-k { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 3px; }
+.o-u { display: block; font: 700 13px/1.2 var(--f-display); font-stretch: 88%; text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.rojo + .g-b .o-w, .rojo + .g-b .o-u { color: var(--crit); }
+.amarillo + .g-b .o-w, .amarillo + .g-b .o-u { color: var(--warn); }
 .o .o-det { padding: 0 14px 16px; }
+.cmp summary { padding: 11px 14px; align-items: baseline; flex-wrap: wrap; gap: 2px 14px; }
+.cmp .o-n { font-size: 16px; }
+.cmp-r { margin-left: auto; text-align: right; font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.cmp-r strong { color: var(--ink); font-weight: 600; }
 
 /* Formularios */
 .panel { background: var(--surface); border: 1px solid var(--line); padding: 16px 14px; display: flex; flex-direction: column; gap: 14px; }
@@ -194,17 +210,14 @@ td .enlace { padding: 0; }
 .pend-acc .btn { padding: 9px 14px; font-size: 13px; }
 .enlace { background: none; border: 0; padding: 6px 0; color: var(--accent); text-decoration: underline; cursor: pointer; font-size: 13px; }
 body.modo-sala .tabs, body.modo-sala #clave-panel { display: none; }
-@media (max-width: 420px) { .head h1 { font-size: 26px; } .obra h3 { font-size: 20px; } .tabs a { font-size: 12.5px; letter-spacing: .02em; } }
+@media (max-width: 420px) { .obra h3 { font-size: 20px; } .tabs a { font-size: 12.5px; letter-spacing: .02em; } }
+@media (max-width: 480px) { form > .btn, form > div > .btn { align-self: stretch; text-align: center; padding-block: 15px; } }
 </style>
 </head>
 <body>
 <div class="wrap">
   <header class="head">
-    <div>
-      <div class="tintas" aria-hidden="true"><i class="c"></i><i class="m"></i><i class="y"></i><i class="k"></i></div>
-      <h1>Programas de mano</h1>
-      <p class="sub">Teatro Metropolitan · stock y reimpresión por obra</p>
-    </div>
+    <div class="marca"><span class="tintas" aria-hidden="true"><i class="c"></i><i class="m"></i><i class="y"></i><i class="k"></i></span><h1>Programas de mano</h1></div>
     <p class="estado-con" id="estado-con"></p>
   </header>
 
@@ -228,7 +241,7 @@ body.modo-sala .tabs, body.modo-sala #clave-panel { display: none; }
   <section id="v-tablero" class="vista">
     <p class="titular" id="titular"></p>
     <div id="lista"><p class="vacio">Cargando…</p></div>
-    <p class="pie">El número grande es para cuánto tiempo alcanzan los programas. Tocá una obra para ver las fechas, cuánto pedir y los conteos.</p>
+    <p class="pie">Tocá una obra para ver las fechas, cuánto pedir y los conteos.</p>
   </section>
 
   <!-- CONTAR: la pantalla de las asistentes de sala -->
@@ -242,7 +255,7 @@ body.modo-sala .tabs, body.modo-sala #clave-panel { display: none; }
       <div id="ct-filas"></div>
       <button class="btn" type="submit" id="ct-guardar">Enviar conteo</button>
     </form>
-    <p class="pie"><a class="enlace" href="#tablero">Entrada de gestión</a></p>
+    <p class="pie" id="volver-gestion" hidden><a class="enlace" href="#tablero">Volver a gestión</a></p>
   </section>
 
   <!-- APROBAR: la pantalla de la jefa de sala -->
@@ -460,7 +473,7 @@ const GRUPOS = [
   { cls: 'rojo', t: 'Reimprimir ya', de: ['rojo'] },
   { cls: 'amarillo', t: 'Reimprimir pronto', de: ['amarillo'] },
   { cls: 'neutro', t: 'Falta un dato', de: ['inconsistente', 'un-conteo', 'sin-datos'] },
-  { cls: 'verde', t: 'Con stock', de: ['verde', 'alcanza'] },
+  { cls: 'verde', t: 'Con stock', de: ['verde', 'alcanza'], compacto: true },
   { cls: 'neutro', t: 'Sin funciones', de: ['espera'] }
 ];
 
@@ -482,10 +495,11 @@ function alcance(r, hoy) {
 }
 
 // Cuándo fue el último conteo aprobado. Pasados 10 días sin contar se marca.
+function conteoViejo(r) { return !!r.ultimo && r.diasDesde > +(S.config.dias_sin_conteo || CFG_DEF.dias_sin_conteo) && !r.espera; }
 function contado(r) {
   if (!r.ultimo) return '';
   const d = r.diasDesde, hace = d <= 0 ? 'hoy' : d === 1 ? 'ayer' : 'hace ' + dias(d), viejo = d > +(S.config.dias_sin_conteo || CFG_DEF.dias_sin_conteo) && !r.espera;
-  return `<span class="o-c${viejo ? ' viejo' : ''}">Contado ${hace} (${ff(dn(r.ultimo.fecha))})${viejo ? ' · toca contar de nuevo' : ''}</span>`;
+  return `<span class="o-c${viejo ? ' viejo' : ''}">Último conteo: <strong>${ff(dn(r.ultimo.fecha))}</strong> · ${hace}${viejo ? ' · toca contar de nuevo' : ''}</span>`;
 }
 
 // Dos líneas por obra: qué hay y qué hacer.
@@ -554,10 +568,17 @@ function renderTablero() {
     if (!rs.length) return '';
     return `<section><h2 class="g-t ${g.cls}">${g.t}</h2><div class="g-b">${rs.map(r => {
       const id = 'o-' + r.obra.id, [que, hacer] = textos(r, hoy), al = alcance(r, hoy);
+      if (g.compacto) {
+        const der = r.estado === 'alcanza' ? '<strong>Alcanza</strong> hasta el final' : al ? `<strong>${al.n} ${al.u}</strong> · hasta el ${ff(r.agot)}` : 'No bajó entre conteos';
+        return `<details class="o cmp" id="${esc(id)}"${open.has(id) ? ' open' : ''}>
+          <summary><span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span>${conteoViejo(r) ? contado(r) : ''}</span><span class="cmp-r">${der}</span></summary>
+          <div class="o-det">${detalle(r, hoy)}</div>
+        </details>`;
+      }
       return `<details class="o" id="${esc(id)}"${open.has(id) ? ' open' : ''}>
         <summary>
           <span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span><span class="o-s">${que}</span>${hacer ? `<span class="o-a">${hacer}</span>` : ''}${contado(r)}</span>
-          ${al ? `<span class="o-r"><span class="o-w">${al.n}</span><span class="o-u">${al.u}</span></span>` : ''}
+          ${al ? `<span class="o-r"><span class="o-k">Alcanza para</span><span class="o-w">${al.n}</span><span class="o-u">${al.u}</span></span>` : ''}
         </summary>
         <div class="o-det">${detalle(r, hoy)}</div>
       </details>`;
@@ -629,17 +650,18 @@ function editarObra(o) {
 }
 
 async function enviar(payload, boton, ok) {
-  boton.disabled = true;
+  const rotulo = boton.textContent;
+  boton.disabled = true; boton.textContent = 'Guardando…';
   try {
     S = await api(payload);
     if ($('clave').value) ls.set(LS_CLAVE, $('clave').value);
     $('clave-panel').hidden = true; aviso(API_URL ? '' : avisoDemo());
-    render(); toast(ok); return true;
+    marcar('ok'); render(); toast(ok); return true;
   } catch (e) {
     if (/clave/i.test(e.message)) { ls.del(LS_CLAVE); $('clave-panel').hidden = false; $('clave').focus(); aviso('La clave de gestión falta o no coincide. Escribila arriba y probá de nuevo.', true); }
     else aviso('No se pudo guardar: ' + esc(e.message) + '. Revisá la conexión y probá otra vez.', true);
     return false;
-  } finally { boton.disabled = false; }
+  } finally { boton.disabled = false; boton.textContent = rotulo; }
 }
 
 const avisoDemo = () => 'Demo: los conteos por aprobar son ejemplos inventados. <button type="button" id="demo-reset">Restablecer</button>';
@@ -662,24 +684,35 @@ async function aprobar(ids, boton) {
   await enviar({ action: 'aprobar', aprobado_por: quien, items }, boton, items.length === 1 ? 'Conteo aprobado' : items.length + ' conteos aprobados');
 }
 
+// Línea de estado de la cabecera: de cuándo son los datos que se están viendo.
+function marcar(estado) {
+  const recargar = ' <button class="enlace" type="button" data-recargar="1">Actualizar</button>';
+  $('estado-con').innerHTML = estado === 'cargando' ? 'Cargando datos…'
+    : estado === 'error' ? 'Sin conexión' + recargar
+    : API_URL ? `<span>Datos al <strong>${ff(hoyN())}, ${ahoraHM()}</strong></span>` + recargar
+    : 'Demo · datos de ejemplo';
+}
+
 async function cargar() {
-  $('estado-con').innerHTML = `Hoy: <strong>${ff(hoyN())}</strong><br>${API_URL ? 'Conectando con el Sheet…' : 'Modo demo'}`;
+  marcar('cargando');
   try {
     S = await api();
-    $('estado-con').innerHTML = `Hoy: <strong>${ff(hoyN())}</strong><br>${API_URL ? 'Conectado al Sheet' : 'Modo demo'}`;
+    marcar('ok');
     aviso(API_URL ? '' : avisoDemo());
     if (API_URL && S.config && S.config.requiere_clave && !ls.get(LS_CLAVE)) $('clave-panel').hidden = false;
     render();
   } catch (e) {
-    $('estado-con').innerHTML = `Hoy: <strong>${ff(hoyN())}</strong><br>Sin conexión`;
-    $('lista').innerHTML = '<p class="vacio">No se pudieron leer los datos.</p>';
-    aviso('No se pudo leer el Sheet: ' + esc(e.message) + '. <button type="button" id="reintentar">Reintentar</button>', true);
+    marcar('error');
+    if (!S.obras.length) $('lista').innerHTML = '<p class="vacio">No se pudieron leer los datos.</p>';
+    aviso('No se pudo leer el Sheet: ' + esc(e.message) + '. <button type="button" data-recargar="1">Reintentar</button>', true);
   }
 }
 
 function iniciar() {
   $('ri-fecha').value = iso(hoyN());
   $('ct-quien').value = ls.get(LS_QUIEN) || ''; $('ap-quien').value = ls.get(LS_APRUEBA) || '';
+  // El enlace para volver solo aparece si se entró por gestión. Quien abre directo la dirección #sala no lo ve.
+  $('volver-gestion').hidden = ['sala', 'contar'].includes(location.hash.slice(1));
   irA(location.hash.slice(1)); addEventListener('hashchange', () => irA(location.hash.slice(1)));
 
   document.addEventListener('click', e => {
@@ -687,7 +720,7 @@ function iniciar() {
     if (t.dataset.sala) { filtroSala = t.dataset.sala; renderTablero(); }
     else if (t.dataset.editar) editarObra(S.obras.find(o => o.id === t.dataset.editar));
     else if (t.id === 'demo-reset') { ls.del(LS_DEMO); cargar(); toast('Demo restablecida'); }
-    else if (t.id === 'reintentar') cargar();
+    else if (t.dataset.recargar) cargar();
     else if (t.id === 'ob-cancelar') editarObra(null);
     else if (t.dataset.aprobar) aprobar([t.dataset.aprobar], t);
     else if (t.dataset.descartar) { corrigiendo = null; enviar({ action: 'descartar', ids: [t.dataset.descartar] }, t, 'Conteo eliminado'); }
