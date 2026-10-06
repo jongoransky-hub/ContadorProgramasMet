@@ -129,6 +129,8 @@ td { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
 
 /* Tablero simple: grupos por urgencia, una fila por obra, un número grande (semanas que quedan) */
 .titular { font: 600 18px/1.35 var(--f-body); text-wrap: balance; }
+.nota-temp { font-size: 13px; color: var(--muted); max-width: 70ch; }
+.nota-temp strong { color: var(--ink); font-weight: 600; }
 .titular a { color: var(--accent); font-weight: 500; font-size: 14px; display: block; margin-top: 4px; }
 #lista { display: flex; flex-direction: column; gap: 14px; }
 .g-t { margin: 0; padding: 9px 14px; font: 800 14px/1.2 var(--f-display); font-stretch: 85%; text-transform: uppercase; letter-spacing: .07em; background: var(--neutral-bg); color: var(--muted); }
@@ -240,6 +242,7 @@ body.modo-sala .tabs, body.modo-sala #clave-panel { display: none; }
   <!-- TABLERO -->
   <section id="v-tablero" class="vista">
     <p class="titular" id="titular"></p>
+    <p class="nota-temp" id="nota-temp" hidden></p>
     <div id="lista"><p class="vacio">Cargando…</p></div>
     <p class="pie">Tocá una obra para ver las fechas, cuánto pedir y los conteos.</p>
   </section>
@@ -349,7 +352,7 @@ const SEMILLA = {
     ['2026-09-29', 'suavecita', 1024]
   ].map(([fecha, obra_id, stock], i) => ({ id: 'c' + (i + 1), fecha, hora: '', obra_id, stock, contado_por: '', estado: 'aprobado', aprobado_por: '', nota: '' })),
   reimpresiones: [],
-  config: {}
+  config: { fin_temporada: '2026-11-29' }
 };
 
 /* ============ FECHAS Y FORMATO ============ */
@@ -361,6 +364,7 @@ const iso = n => new Date(n * 864e5).toISOString().slice(0, 10);
 const hoyN = () => { const t = new Date(); return Math.round(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / 864e5); };
 const ff = n => { const d = new Date(n * 864e5), y = d.getUTCFullYear(); return d.getUTCDate() + ' ' + MESES[d.getUTCMonth()] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
 const nf = n => Math.round(n).toLocaleString('es-AR');
+const anio = n => new Date(n * 864e5).getUTCFullYear();
 const dias = n => n + (n === 1 ? ' día' : ' días');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -374,9 +378,13 @@ function calc(o, S, hoy) {
   const cs = S.conteos.filter(c => c.obra_id === o.id && vigente(c)).sort((a, b) => dn(a.fecha) - dn(b.fecha) || String(a.hora || '').localeCompare(String(b.hora || '')));
   const rs = S.reimpresiones.filter(r => r.obra_id === o.id).sort((a, b) => dn(a.fecha) - dn(b.fecha));
   const ingreso = (desde, hasta) => rs.reduce((t, r) => { const d = dn(r.fecha); return t + (d > desde && d <= hasta ? +r.cantidad : 0); }, 0);
-  const r = { obra: o, conteos: cs, reimps: rs, estado: 'sin-datos', intervalos: [], baja: o.fecha_baja ? dn(o.fecha_baja) : null, inicio: o.fecha_inicio ? dn(o.fecha_inicio) : null,
+  const r = { obra: o, conteos: cs, reimps: rs, estado: 'sin-datos', intervalos: [], baja: null, inicio: o.fecha_inicio ? dn(o.fecha_inicio) : null,
     pendientes: S.conteos.filter(c => c.obra_id === o.id && c.estado === 'pendiente') };
   r.espera = r.inicio != null && r.inicio > hoy; // sin funciones hasta el estreno o el regreso
+  // Tope de todo el cálculo: el fin de temporada, o la baja de la obra si llega antes.
+  const fin = cfg.fin_temporada ? dn(cfg.fin_temporada) : null, bajaObra = o.fecha_baja ? dn(o.fecha_baja) : null;
+  r.fin = fin; r.baja = bajaObra != null && (fin == null || bajaObra < fin) ? bajaObra : fin;
+  r.bajaEsFin = r.baja != null && r.baja === fin;
   if (!cs.length) return r;
   const ult = cs[cs.length - 1], dUlt = dn(ult.fecha);
   r.ultimo = ult; r.diasDesde = hoy - dUlt;
@@ -386,6 +394,8 @@ function calc(o, S, hoy) {
     const d0 = dn(cs[i - 1].fecha), d1 = dn(cs[i].fecha), entra = ingreso(d0, d1);
     r.intervalos.push({ desde: d0, hasta: d1, dias: d1 - d0, entra, consumo: +cs[i - 1].stock + entra - +cs[i].stock });
   }
+  if (fin != null && hoy > fin) { r.estado = 'cerrada'; return r; }                                   // la temporada ya terminó
+  if (r.espera && fin != null && r.inicio > fin) { r.estado = 'espera'; r.otraTemporada = true; return r; } // vuelve en la temporada siguiente
   if (cs.length < 2) { r.estado = r.espera ? 'espera' : 'un-conteo'; return r; }
   const ultInt = r.intervalos[r.intervalos.length - 1];
   if (ultInt.consumo < 0) { r.estado = 'inconsistente'; r.previo = cs[cs.length - 2]; return r; }
@@ -414,7 +424,7 @@ function calc(o, S, hoy) {
 /* ============ DATOS ============ */
 let S = { obras: [], conteos: [], reimpresiones: [], config: {} };
 let filtroSala = 'Todas', corrigiendo = null; // id del conteo que se está corrigiendo
-const LS_DEMO = 'pdm-demo-v4', LS_CLAVE = 'pdm-clave', LS_QUIEN = 'pdm-quien', LS_APRUEBA = 'pdm-aprueba';
+const LS_DEMO = 'pdm-demo-v5', LS_CLAVE = 'pdm-clave', LS_QUIEN = 'pdm-quien', LS_APRUEBA = 'pdm-aprueba';
 const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 const slug = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'obra';
 
@@ -474,7 +484,7 @@ const GRUPOS = [
   { cls: 'amarillo', t: 'Reimprimir pronto', de: ['amarillo'] },
   { cls: 'neutro', t: 'Falta un dato', de: ['inconsistente', 'un-conteo', 'sin-datos'] },
   { cls: 'verde', t: 'Con stock', de: ['verde', 'alcanza'], compacto: true },
-  { cls: 'neutro', t: 'Sin funciones', de: ['espera'] }
+  { cls: 'neutro', t: 'Sin funciones', de: ['espera', 'cerrada'] }
 ];
 
 function quienes(c) {
@@ -511,10 +521,11 @@ function textos(r, hoy) {
     case 'amarillo': return [`${quedan} · se acaban el ${ff(r.agot)}`, `Empezar la reimpresión antes del ${ff(r.limite)}.`];
     case 'verde': return r.sinConsumo ? [`${quedan} · no bajó entre los últimos conteos`, '']
       : [`${quedan} · se acaban el ${ff(r.agot)}`, `${r.espera ? 'Vuelve el ' + ff(r.inicio) + '. ' : ''}Empezar la reimpresión antes del ${ff(r.limite)}.`];
-    case 'alcanza': return [`${quedan} · alcanzan hasta el final (${ff(r.baja)})`, 'No hace falta reimprimir.'];
+    case 'alcanza': return [`${quedan} · alcanzan hasta ${r.bajaEsFin ? 'el fin de temporada' : 'la baja'} (${ff(r.baja)})`, 'No hace falta reimprimir.'];
     case 'inconsistente': return [`El conteo subió de ${nf(r.previo.stock)} a ${nf(r.ultimo.stock)}`, 'Falta anotar una reimpresión o corregir el conteo.'];
     case 'un-conteo': return [`${quedan} · hay un solo conteo`, 'Con el próximo conteo se sabe para cuánto alcanza.'];
-    case 'espera': return [`${quedan} guardados`, `Vuelve el ${ff(r.inicio)}.`];
+    case 'espera': return r.otraTemporada ? [`${quedan} de la temporada ${anio(r.fin)}`, `Vuelve el ${ff(r.inicio)}, con programa nuevo.`] : [`${quedan} guardados`, `Vuelve el ${ff(r.inicio)}.`];
+    case 'cerrada': return [quedan, `Terminó la temporada ${anio(r.fin)}.`];
     default: return [r.espera ? `Estrena el ${ff(r.inicio)}` : 'Todavía no se contó', 'Falta el primer conteo.'];
   }
 }
@@ -523,7 +534,7 @@ function detalle(r, hoy) {
   const li = [];
   if (r.agot != null && r.estado !== 'alcanza') {
     li.push(['Empezar actualización (logos, cambios)', ff(r.limite)], ['Mandar a imprenta', ff(r.finArreglos)], ['Se acaban los programas', ff(r.agot)]);
-    li.push(['Cuánto pedir', `~${nf(r.sugerido)} (${r.baja != null ? 'hasta el final de la temporada' : Math.round(r.semanasSug) + ' semanas más'})`]);
+    li.push([r.bajaEsFin ? `Cuánto pedir para la temporada ${anio(r.fin)}` : 'Cuánto pedir', `~${nf(r.sugerido)} (${r.baja != null ? 'hasta el ' + ff(r.baja) : Math.round(r.semanasSug) + ' semanas más'})`]);
   }
   if (r.porSemana != null) li.push(['Se usan por semana', nf(r.porSemana)]);
   if (r.porFuncion != null) li.push(['Se usan por función', nf(r.porFuncion)]);
@@ -562,6 +573,11 @@ function renderTablero() {
   $('n-pend').textContent = nPend ? ' ' + nPend : '';
   $('titular').innerHTML = (partes.length ? 'Hay ' + partes.join(' y ') + '.' : 'Ninguna obra necesita reimpresión por ahora.')
     + (nPend ? `<a href="#aprobar">${nPend === 1 ? 'Hay 1 conteo esperando' : 'Hay ' + nPend + ' conteos esperando'} aprobación</a>` : '');
+  const fin = S.config.fin_temporada ? dn(S.config.fin_temporada) : null;
+  $('nota-temp').hidden = fin == null;
+  if (fin != null) $('nota-temp').innerHTML = hoy > fin
+    ? `La temporada ${anio(fin)} terminó el ${ff(fin)}. Para la próxima, cambiá la fecha <span class="num">fin_temporada</span> en la pestaña Config del Sheet.`
+    : `<strong>Temporada ${anio(fin)}:</strong> las fechas y las cantidades a pedir se calculan hasta el ${ff(fin)}. Si una obra sigue en ${anio(fin) + 1}, va con programa nuevo (logos, auspicios y ficha técnica).`;
   const open = new Set([...document.querySelectorAll('.o[open]')].map(e => e.id));
   $('lista').innerHTML = GRUPOS.map(g => {
     const rs = todas.filter(r => g.de.includes(r.estado)).sort((a, b) => (a.agot ?? 1e9) - (b.agot ?? 1e9) || a.obra.nombre.localeCompare(b.obra.nombre));
@@ -569,7 +585,7 @@ function renderTablero() {
     return `<section><h2 class="g-t ${g.cls}">${g.t}</h2><div class="g-b">${rs.map(r => {
       const id = 'o-' + r.obra.id, [que, hacer] = textos(r, hoy), al = alcance(r, hoy);
       if (g.compacto) {
-        const der = r.estado === 'alcanza' ? '<strong>Alcanza</strong> hasta el final' : al ? `<strong>${al.n} ${al.u}</strong> · hasta el ${ff(r.agot)}` : 'No bajó entre conteos';
+        const der = r.estado === 'alcanza' ? `<strong>Alcanza</strong> hasta el ${ff(r.baja)}` : al ? `<strong>${al.n} ${al.u}</strong> · hasta el ${ff(r.agot)}` : 'No bajó entre conteos';
         return `<details class="o cmp" id="${esc(id)}"${open.has(id) ? ' open' : ''}>
           <summary><span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span>${conteoViejo(r) ? contado(r) : ''}</span><span class="cmp-r">${der}</span></summary>
           <div class="o-det">${detalle(r, hoy)}</div>
