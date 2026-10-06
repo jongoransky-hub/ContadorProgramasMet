@@ -1,0 +1,764 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Programas de mano MET</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: una sola columna tipo cartelera, ordenada por urgencia; cada obra lleva una tira de 12 semanas
+   pintada con las tintas de imprenta (C stock, Y arreglos, M imprenta, K sin programas). */
+:root {
+  --bg: #F1F4F6; --surface: #FFFFFF; --ink: #111A22; --muted: #586570; --line: #D3DBE1;
+  --accent: #006E96; --on-ink: #FFFFFF;
+  --c: #19AEE3; --m: #E2127F; --y: #FFD21A; --k: #111A22; --track: #E4E9ED;
+  --ok: #17694A; --ok-bg: #D9F0E3; --warn: #7A4F00; --warn-bg: #FFEDB8; --crit: #A8231C; --crit-bg: #FADCD9;
+  --neutral-bg: #E4E9ED;
+  --f-display: "Archivo", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "IBM Plex Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-data: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0D1317; --surface: #151D23; --ink: #E9EFF2; --muted: #98A6B0; --line: #2A363E;
+    --accent: #62CDF2; --on-ink: #0D1317;
+    --c: #2CB6E6; --m: #F2459C; --y: #F5CC2E; --k: #E9EFF2; --track: #222D34;
+    --ok: #7FDDAD; --ok-bg: #123524; --warn: #FFD37E; --warn-bg: #3B2D0B; --crit: #FF9E96; --crit-bg: #431916;
+    --neutral-bg: #222D34;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0D1317; --surface: #151D23; --ink: #E9EFF2; --muted: #98A6B0; --line: #2A363E;
+  --accent: #62CDF2; --on-ink: #0D1317;
+  --c: #2CB6E6; --m: #F2459C; --y: #F5CC2E; --k: #E9EFF2; --track: #222D34;
+  --ok: #7FDDAD; --ok-bg: #123524; --warn: #FFD37E; --warn-bg: #3B2D0B; --crit: #FF9E96; --crit-bg: #431916;
+  --neutral-bg: #222D34;
+  color-scheme: dark;
+}
+*, *::before, *::after { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 400 15px/1.45 var(--f-body); -webkit-text-size-adjust: 100%; }
+.wrap { max-width: 760px; margin-inline: auto; padding-inline: 16px; padding-block: 20px 56px; display: flex; flex-direction: column; gap: 16px; }
+h1, h2, h3, p, dl, dd, ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+
+/* Cabecera */
+.head { display: flex; justify-content: space-between; align-items: flex-end; gap: 12px; flex-wrap: wrap; }
+.head h1 { font: 800 30px/1 var(--f-display); font-stretch: 78%; text-transform: uppercase; letter-spacing: .01em; text-wrap: balance; }
+.head .sub { color: var(--muted); font-size: 13px; margin-top: 6px; }
+.tintas { display: flex; gap: 3px; margin-bottom: 10px; }
+.tintas i { width: 14px; height: 14px; display: block; }
+.tintas .c { background: var(--c); } .tintas .m { background: var(--m); } .tintas .y { background: var(--y); } .tintas .k { background: var(--k); }
+.estado-con { font-size: 12px; color: var(--muted); }
+.estado-con strong { color: var(--ink); font-weight: 600; }
+
+/* Navegación */
+.tabs { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; background: var(--bg); padding-block: 8px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; }
+.tabs a { text-align: center; white-space: nowrap; padding: 10px 2px; text-decoration: none; color: var(--muted); font: 700 14px/1 var(--f-display); font-stretch: 85%; text-transform: uppercase; letter-spacing: .06em; border-bottom: 3px solid var(--line); }
+.tabs a[aria-current="page"] { color: var(--ink); border-bottom-color: var(--ink); }
+
+.aviso { background: var(--warn-bg); color: var(--warn); padding: 10px 12px; font-size: 13px; }
+.aviso.err { background: var(--crit-bg); color: var(--crit); }
+.aviso button { background: none; border: 0; padding: 0; text-decoration: underline; cursor: pointer; color: inherit; font-weight: 600; }
+
+/* Tablero */
+.vista { display: flex; flex-direction: column; gap: 12px; }
+.resumen { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.pill { display: inline-block; padding: 3px 9px; border-radius: 999px; font: 700 12px/1.3 var(--f-display); font-stretch: 88%; text-transform: uppercase; letter-spacing: .05em; background: var(--neutral-bg); color: var(--muted); white-space: nowrap; }
+.pill.rojo { background: var(--crit-bg); color: var(--crit); }
+.pill.amarillo { background: var(--warn-bg); color: var(--warn); }
+.pill.verde, .pill.alcanza { background: var(--ok-bg); color: var(--ok); }
+.pill.inconsistente { background: var(--ink); color: var(--on-ink); }
+.filtros { display: flex; gap: 6px; flex-wrap: wrap; }
+.filtros button { border: 1px solid var(--line); background: var(--surface); padding: 6px 12px; border-radius: 999px; cursor: pointer; font-size: 13px; }
+.filtros button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); border-color: var(--ink); }
+.barra-filtros { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; align-items: center; }
+
+.leyenda { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: 12px; color: var(--muted); }
+.leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.leyenda i { width: 12px; height: 12px; display: block; flex: none; }
+.eje { display: flex; justify-content: space-between; font: 400 11px/1 var(--f-data); color: var(--muted); padding-inline: 14px; }
+
+.lista { background: var(--surface); border: 1px solid var(--line); }
+.obra { border-bottom: 1px solid var(--line); }
+.obra:last-child { border-bottom: 0; }
+.obra summary { list-style: none; cursor: pointer; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
+.obra summary::-webkit-details-marker { display: none; }
+.o-top { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.o-sala { font-size: 12px; color: var(--muted); }
+.obra h3 { font: 800 22px/1.05 var(--f-display); font-stretch: 78%; text-transform: uppercase; letter-spacing: .01em; overflow-wrap: anywhere; }
+.o-msg { font-size: 14px; }
+.o-conteo { font-size: 12px; color: var(--muted); }
+.o-conteo.viejo { color: var(--warn); }
+.o-nums .s { display: block; font-size: 11px; color: var(--muted); }
+.o-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.o-nums .k { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+.o-nums .v { display: block; font: 500 16px/1.3 var(--f-data); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.o-mas { font-size: 12px; color: var(--accent); }
+.obra[open] .o-mas .abrir, .obra:not([open]) .o-mas .cerrar { display: none; }
+
+.tira { position: relative; height: 14px; background: var(--track); overflow: hidden; }
+.tira span { position: absolute; top: 0; bottom: 0; }
+.tira .s-c { background: var(--c); } .tira .s-y { background: var(--y); } .tira .s-m { background: var(--m); }
+.tira .s-k { background: repeating-linear-gradient(135deg, var(--k) 0 2px, transparent 2px 6px); }
+.tira .s-baja { width: 2px; background: var(--ink); }
+.tira::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(to right, transparent 0 calc(100% / 12 - 1px), var(--surface) calc(100% / 12 - 1px) calc(100% / 12)); }
+
+.o-det { padding: 0 14px 16px; display: flex; flex-direction: column; gap: 14px; }
+.o-det h4 { margin: 0 0 6px; font: 700 12px/1.2 var(--f-display); font-stretch: 88%; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); }
+.ciclo li { display: flex; justify-content: space-between; gap: 12px; padding: 5px 0; border-bottom: 1px dashed var(--line); font-size: 14px; }
+.ciclo li span:last-child { font-family: var(--f-data); font-variant-numeric: tabular-nums; text-align: right; }
+.ciclo i { display: inline-block; width: 10px; height: 10px; margin-right: 8px; }
+.tabla { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: right; padding: 5px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; padding-left: 0; }
+th { font-weight: 500; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
+td { font-family: var(--f-data); font-variant-numeric: tabular-nums; }
+.vacio { padding: 28px 14px; color: var(--muted); text-align: center; }
+
+/* Tablero simple: grupos por urgencia, una fila por obra, un número grande (semanas que quedan) */
+.titular { font: 600 18px/1.35 var(--f-body); text-wrap: balance; }
+.titular a { color: var(--accent); font-weight: 500; font-size: 14px; display: block; margin-top: 4px; }
+#lista { display: flex; flex-direction: column; gap: 14px; }
+.g-t { margin: 0; padding: 9px 14px; font: 800 14px/1.2 var(--f-display); font-stretch: 85%; text-transform: uppercase; letter-spacing: .07em; background: var(--neutral-bg); color: var(--muted); }
+.g-t.rojo { background: var(--crit-bg); color: var(--crit); }
+.g-t.amarillo { background: var(--warn-bg); color: var(--warn); }
+.g-t.verde { background: var(--ok-bg); color: var(--ok); }
+.g-b { background: var(--surface); border: 1px solid var(--line); border-top: 0; }
+.o { border-bottom: 1px solid var(--line); }
+.o:last-child { border-bottom: 0; }
+.o summary { list-style: none; cursor: pointer; padding: 14px; display: flex; justify-content: space-between; align-items: center; gap: 14px; }
+.o summary::-webkit-details-marker { display: none; }
+.o-l { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.o-n { font: 800 20px/1.1 var(--f-display); font-stretch: 78%; text-transform: uppercase; overflow-wrap: anywhere; }
+.o-s { font-size: 14px; color: var(--muted); }
+.o-a { font-size: 14px; }
+.rojo + .g-b .o-a { color: var(--crit); font-weight: 600; }
+.amarillo + .g-b .o-a { color: var(--warn); font-weight: 600; }
+.o-c { font-size: 12px; color: var(--muted); }
+.o-c.viejo { color: var(--warn); font-weight: 600; }
+.o-r { flex: none; text-align: right; }
+.o-w { display: block; font: 800 32px/1 var(--f-display); font-stretch: 80%; font-variant-numeric: tabular-nums; }
+.o-u { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
+.o .o-det { padding: 0 14px 16px; }
+
+/* Formularios */
+.panel { background: var(--surface); border: 1px solid var(--line); padding: 16px 14px; display: flex; flex-direction: column; gap: 14px; }
+.panel h2 { font: 800 20px/1.1 var(--f-display); font-stretch: 80%; text-transform: uppercase; }
+.panel .ayuda { color: var(--muted); font-size: 13px; max-width: 62ch; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 0; border: 1px solid var(--ink); }
+.seg button { background: transparent; border: 0; padding: 10px 8px; cursor: pointer; font-size: 14px; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--on-ink); }
+.campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.campo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.campo label, .campo .lab { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+input[type="text"], input[type="number"], input[type="date"], input[type="password"], select {
+  width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--line); background: var(--bg); border-radius: 0; font-size: 16px; }
+input.stock { font-family: var(--f-data); text-align: right; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.grupo-sala { font: 700 12px/1 var(--f-display); font-stretch: 88%; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-top: 6px; }
+.fila-conteo { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 4px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.fila-conteo label { font-weight: 600; overflow-wrap: anywhere; }
+.fila-conteo .ult { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.fila-conteo .sube { grid-column: 1 / -1; font-size: 12px; color: var(--warn); }
+.btn { background: var(--ink); color: var(--on-ink); border: 0; padding: 12px 16px; cursor: pointer; font: 700 14px/1 var(--f-display); font-stretch: 88%; text-transform: uppercase; letter-spacing: .06em; align-self: flex-start; }
+.btn.sec { background: transparent; color: var(--ink); border: 1px solid var(--ink); }
+.btn:disabled { opacity: .5; cursor: default; }
+.acciones { display: flex; gap: 8px; flex-wrap: wrap; }
+.obra-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.obra-item:last-child { border-bottom: 0; }
+.obra-item div { min-width: 0; }
+.obra-item strong { display: block; overflow-wrap: anywhere; }
+.obra-item small { color: var(--muted); }
+.obra-item button { background: none; border: 0; color: var(--accent); text-decoration: underline; cursor: pointer; padding: 6px 0; flex: none; }
+.toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--ink); color: var(--on-ink); padding: 10px 16px; font-size: 14px; max-width: calc(100% - 32px); z-index: 10; }
+.pie { color: var(--muted); font-size: 12px; max-width: 70ch; }
+.tabs .n { font-family: var(--f-data); font-weight: 500; letter-spacing: 0; }
+a.pill.porap { background: var(--accent); color: var(--on-ink); text-decoration: none; }
+.o-pend { font-size: 12px; color: var(--accent); }
+.ok-panel { background: var(--ok-bg); color: var(--ok); padding: 10px 12px; font-size: 14px; }
+.pend { display: flex; flex-direction: column; gap: 10px; padding: 14px 0; border-bottom: 1px solid var(--line); }
+.pend-in, .corr-in { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
+.corr { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; padding: 12px; background: var(--bg); }
+.corr h4 { margin: 0; }
+td .enlace { padding: 0; }
+.pend strong { display: block; overflow-wrap: anywhere; }
+.pend .ult { display: block; font-size: 12px; color: var(--muted); }
+.pend .ult.sube { color: var(--warn); }
+.pend-acc { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; }
+.pend-acc .btn { padding: 9px 14px; font-size: 13px; }
+.enlace { background: none; border: 0; padding: 6px 0; color: var(--accent); text-decoration: underline; cursor: pointer; font-size: 13px; }
+body.modo-sala .tabs, body.modo-sala #clave-panel { display: none; }
+@media (max-width: 420px) { .head h1 { font-size: 26px; } .obra h3 { font-size: 20px; } .tabs a { font-size: 12.5px; letter-spacing: .02em; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="head">
+    <div>
+      <div class="tintas" aria-hidden="true"><i class="c"></i><i class="m"></i><i class="y"></i><i class="k"></i></div>
+      <h1>Programas de mano</h1>
+      <p class="sub">Teatro Metropolitan · stock y reimpresión por obra</p>
+    </div>
+    <p class="estado-con" id="estado-con"></p>
+  </header>
+
+  <nav class="tabs" aria-label="Secciones">
+    <a href="#tablero" data-tab="tablero">Tablero</a>
+    <a href="#aprobar" data-tab="aprobar">Aprobar<span class="n" id="n-pend"></span></a>
+    <a href="#obras" data-tab="obras">Obras</a>
+  </nav>
+
+  <div id="aviso" class="aviso" hidden></div>
+
+  <div class="panel" id="clave-panel" hidden>
+    <div class="campo">
+      <label for="clave">Clave de gestión</label>
+      <input type="password" id="clave" autocomplete="off">
+    </div>
+    <p class="ayuda">Hace falta para aprobar o corregir conteos, registrar reimpresiones y editar obras. Se recuerda en este dispositivo.</p>
+  </div>
+
+  <!-- TABLERO -->
+  <section id="v-tablero" class="vista">
+    <p class="titular" id="titular"></p>
+    <div id="lista"><p class="vacio">Cargando…</p></div>
+    <p class="pie">El número grande es para cuánto tiempo alcanzan los programas. Tocá una obra para ver las fechas, cuánto pedir y los conteos.</p>
+  </section>
+
+  <!-- CONTAR: la pantalla de las asistentes de sala -->
+  <section id="v-contar" class="vista" hidden>
+    <div class="ok-panel" id="ct-ok" hidden></div>
+    <form class="panel" id="f-conteo" novalidate>
+      <h2>Conteo de programas</h2>
+      <p class="ayuda">Anotá cuántos programas quedan de cada obra que contaste y dejá vacías las demás. El día y la hora se guardan solos. El conteo le llega a la jefa de sala, que lo revisa y lo aprueba.</p>
+      <div class="campo"><label for="ct-quien">Tu nombre</label><input type="text" id="ct-quien" list="nombres" autocomplete="off"></div>
+      <datalist id="nombres"></datalist>
+      <div id="ct-filas"></div>
+      <button class="btn" type="submit" id="ct-guardar">Enviar conteo</button>
+    </form>
+    <p class="pie"><a class="enlace" href="#tablero">Entrada de gestión</a></p>
+  </section>
+
+  <!-- APROBAR: la pantalla de la jefa de sala -->
+  <section id="v-aprobar" class="vista" hidden>
+    <div class="panel">
+      <div class="seg" role="group" aria-label="Qué hacer">
+        <button type="button" id="seg-pend" aria-pressed="true">Conteos por aprobar</button>
+        <button type="button" id="seg-reimp" aria-pressed="false">Reimpresión recibida</button>
+      </div>
+
+      <form id="f-aprobar" novalidate>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h2>Conteos por aprobar</h2>
+          <p class="ayuda">Los conteos de las asistentes esperan acá. Recién cuando se aprueban entran al tablero. Antes de aprobar se puede corregir el número y la fecha.</p>
+          <div class="campo"><label for="ap-quien">Tu nombre</label><input type="text" id="ap-quien" list="nombres" autocomplete="off"></div>
+          <div id="ap-filas"></div>
+          <button class="btn" type="submit" id="ap-todo">Aprobar todos</button>
+        </div>
+      </form>
+
+      <form id="f-reimp" novalidate hidden>
+        <div style="display:flex;flex-direction:column;gap:14px">
+          <h2>Reimpresión recibida</h2>
+          <p class="ayuda">Registrá cada tanda que entra de la imprenta. Sin este dato, el próximo conteo parece un stock que subió solo.</p>
+          <div class="campos">
+            <div class="campo"><label for="ri-obra">Obra</label><select id="ri-obra"></select></div>
+            <div class="campo"><label for="ri-fecha">Fecha de ingreso</label><input type="date" id="ri-fecha" required></div>
+            <div class="campo"><label for="ri-cant">Cantidad</label><input class="stock" type="number" id="ri-cant" inputmode="numeric" min="1" step="1"></div>
+            <div class="campo"><label for="ri-nota">Nota</label><input type="text" id="ri-nota" placeholder="Imprenta, cambios hechos"></div>
+          </div>
+          <button class="btn" type="submit" id="ri-guardar">Registrar reimpresión</button>
+        </div>
+      </form>
+    </div>
+    <p class="pie" id="dir-sala"></p>
+  </section>
+
+  <!-- OBRAS -->
+  <section id="v-obras" class="vista" hidden>
+    <form class="panel" id="f-obra" novalidate>
+      <h2 id="ob-titulo">Agregar obra</h2>
+      <input type="hidden" id="ob-id">
+      <div class="campos">
+        <div class="campo"><label for="ob-nombre">Nombre</label><input type="text" id="ob-nombre" required></div>
+        <div class="campo"><label for="ob-sala">Sala</label><select id="ob-sala"><option>Sala 1</option><option>Sala 2</option></select></div>
+        <div class="campo"><label for="ob-func">Funciones por semana</label><input class="stock" type="number" id="ob-func" inputmode="numeric" min="0" step="1"></div>
+        <div class="campo"><label for="ob-inicio">Estreno o regreso</label><input type="date" id="ob-inicio"></div>
+        <div class="campo"><label for="ob-baja">Fecha de baja</label><input type="date" id="ob-baja"></div>
+      </div>
+      <label class="check"><input type="checkbox" id="ob-activa" checked> En cartel</label>
+      <p class="ayuda">Con las funciones por semana aparece el consumo por función. Con la fecha de baja, la reimpresión sugerida se corta al final de la temporada. Una obra con estreno o regreso futuro queda sin funciones hasta ese día y no descuenta stock.</p>
+      <div class="acciones">
+        <button class="btn" type="submit" id="ob-guardar">Guardar obra</button>
+        <button class="btn sec" type="button" id="ob-cancelar" hidden>Cancelar</button>
+      </div>
+    </form>
+    <div class="panel"><h2>Obras cargadas</h2><div id="ob-lista"></div></div>
+  </section>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<script>
+/* ============ CONFIGURACIÓN ============
+   Pegá acá la URL de la aplicación web del Apps Script (termina en /exec).
+   Vacía = modo demo: datos de ejemplo que solo se guardan en este navegador. */
+const API_URL = 'https://script.google.com/macros/s/AKfycbyZVuXlO_cTsEtGjSdZZWvdQUF7gOu5-YRO7K0fT7NI39OMI3Fjvoe-m9iSSQSmkFUdcQ/exec';
+
+const CFG_DEF = { semanas_arreglos: 1, semanas_imprenta: 2, semanas_margen: 1, semanas_preaviso: 2, semanas_horizonte: 12, dias_sin_conteo: 10 };
+const VENTANA = 84; // días que muestra la tira (12 semanas)
+
+const SEMILLA = {
+  obras: [
+    { id: 'desde-el-jardin', nombre: 'Desde el Jardín', sala: 'Sala 1', funciones_semana: 5, fecha_inicio: '', fecha_baja: '', activa: true },
+    { id: 'modelo-vivo-muerto', nombre: 'Modelo Vivo Muerto', sala: 'Sala 1', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
+    { id: 'habitacion-macbeth', nombre: 'Habitación Macbeth', sala: 'Sala 1', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
+    { id: 'las-cautivas', nombre: 'Las Cautivas', sala: 'Sala 1', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
+    { id: 'cuestion-de-genero', nombre: 'Cuestión de Género', sala: 'Sala 2', funciones_semana: 5, fecha_inicio: '', fecha_baja: '', activa: true },
+    { id: 'misery', nombre: 'Misery', sala: 'Sala 2', funciones_semana: 4, fecha_inicio: '', fecha_baja: '', activa: true },
+    { id: 'othelo', nombre: 'Othelo', sala: 'Sala 2', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
+    { id: 'el-bululu', nombre: 'El Bululú', sala: 'Sala 2', funciones_semana: '', fecha_inicio: '2026-11-03', fecha_baja: '', activa: true },
+    { id: 'suavecita', nombre: 'Suavecita', sala: 'Sala 2', funciones_semana: '', fecha_inicio: '2027-01-01', fecha_baja: '', activa: true }
+  ],
+  conteos: [
+    ['2026-09-15', 'desde-el-jardin', 28500], ['2026-09-29', 'desde-el-jardin', 25000],
+    ['2026-09-15', 'modelo-vivo-muerto', 1800], ['2026-09-29', 'modelo-vivo-muerto', 1500],
+    ['2026-09-15', 'habitacion-macbeth', 1500], ['2026-09-29', 'habitacion-macbeth', 1300],
+    ['2026-09-15', 'las-cautivas', 1000], ['2026-09-29', 'las-cautivas', 600],
+    ['2026-09-16', 'cuestion-de-genero', 3000], ['2026-09-30', 'cuestion-de-genero', 2600],
+    ['2026-09-16', 'misery', 1800], ['2026-10-02', 'misery', 1260],
+    ['2026-09-16', 'othelo', 1000], ['2026-10-01', 'othelo', 1200],
+    ['2026-09-29', 'suavecita', 1024]
+  ].map(([fecha, obra_id, stock], i) => ({ id: 'c' + (i + 1), fecha, hora: '', obra_id, stock, contado_por: '', estado: 'aprobado', aprobado_por: '', nota: '' })),
+  reimpresiones: [],
+  config: {}
+};
+
+/* ============ FECHAS Y FORMATO ============ */
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const dn = s => { const [y, m, d] = String(s).slice(0, 10).split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
+const vigente = c => !c.estado || c.estado === 'aprobado';
+const ahoraHM = () => { const t = new Date(); return ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2); };
+const iso = n => new Date(n * 864e5).toISOString().slice(0, 10);
+const hoyN = () => { const t = new Date(); return Math.round(Date.UTC(t.getFullYear(), t.getMonth(), t.getDate()) / 864e5); };
+const ff = n => { const d = new Date(n * 864e5), y = d.getUTCFullYear(); return d.getUTCDate() + ' ' + MESES[d.getUTCMonth()] + (y !== new Date().getFullYear() ? ' ' + y : ''); };
+const nf = n => Math.round(n).toLocaleString('es-AR');
+const dias = n => n + (n === 1 ? ' día' : ' días');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+/* ============ CÁLCULO ============
+   Consumo = stock anterior + reimpresiones que entraron - stock nuevo, sobre los últimos 4 períodos.
+   Agotamiento = último conteo + stock / consumo diario.
+   Límite de arranque = agotamiento - (arreglos + imprenta). Rojo desde una semana antes (margen). */
+function calc(o, S, hoy) {
+  const cfg = Object.assign({}, CFG_DEF, S.config);
+  const A = +cfg.semanas_arreglos * 7, I = +cfg.semanas_imprenta * 7, M = +cfg.semanas_margen * 7, P = +cfg.semanas_preaviso * 7;
+  const cs = S.conteos.filter(c => c.obra_id === o.id && vigente(c)).sort((a, b) => dn(a.fecha) - dn(b.fecha) || String(a.hora || '').localeCompare(String(b.hora || '')));
+  const rs = S.reimpresiones.filter(r => r.obra_id === o.id).sort((a, b) => dn(a.fecha) - dn(b.fecha));
+  const ingreso = (desde, hasta) => rs.reduce((t, r) => { const d = dn(r.fecha); return t + (d > desde && d <= hasta ? +r.cantidad : 0); }, 0);
+  const r = { obra: o, conteos: cs, reimps: rs, estado: 'sin-datos', intervalos: [], baja: o.fecha_baja ? dn(o.fecha_baja) : null, inicio: o.fecha_inicio ? dn(o.fecha_inicio) : null,
+    pendientes: S.conteos.filter(c => c.obra_id === o.id && c.estado === 'pendiente') };
+  r.espera = r.inicio != null && r.inicio > hoy; // sin funciones hasta el estreno o el regreso
+  if (!cs.length) return r;
+  const ult = cs[cs.length - 1], dUlt = dn(ult.fecha);
+  r.ultimo = ult; r.diasDesde = hoy - dUlt;
+  r.stockBase = +ult.stock + ingreso(dUlt, Infinity);
+  r.stockHoy = r.stockBase;
+  for (let i = 1; i < cs.length; i++) {
+    const d0 = dn(cs[i - 1].fecha), d1 = dn(cs[i].fecha), entra = ingreso(d0, d1);
+    r.intervalos.push({ desde: d0, hasta: d1, dias: d1 - d0, entra, consumo: +cs[i - 1].stock + entra - +cs[i].stock });
+  }
+  if (cs.length < 2) { r.estado = r.espera ? 'espera' : 'un-conteo'; return r; }
+  const ultInt = r.intervalos[r.intervalos.length - 1];
+  if (ultInt.consumo < 0) { r.estado = 'inconsistente'; r.previo = cs[cs.length - 2]; return r; }
+  const usados = r.intervalos.slice(-4).filter(x => x.consumo >= 0 && x.dias > 0);
+  const totC = usados.reduce((t, x) => t + x.consumo, 0), totD = usados.reduce((t, x) => t + x.dias, 0);
+  const porDia = totD ? totC / totD : 0;
+  r.porSemana = porDia * 7;
+  if (+o.funciones_semana > 0) r.porFuncion = r.porSemana / +o.funciones_semana;
+  if (porDia <= 0) { r.estado = 'verde'; r.sinConsumo = true; return r; }
+  const base = r.espera ? r.inicio : dUlt; // el consumo corre desde el último conteo, o desde el regreso si está en pausa
+  r.agot = base + Math.floor(r.stockBase / porDia);
+  r.stockHoy = Math.max(0, Math.round(r.stockBase - porDia * Math.max(0, hoy - base)));
+  r.cobertura = (r.agot - hoy) / 7;
+  r.limite = r.agot - A - I; r.finArreglos = r.limite + A; r.arranque = r.limite - M; r.preaviso = r.arranque - P;
+  if (r.baja != null && r.agot >= r.baja) {
+    r.estado = 'alcanza'; r.sobrante = Math.max(0, Math.round(r.stockBase - porDia * (r.baja - base))); return r;
+  }
+  r.estado = hoy >= r.arranque ? 'rojo' : hoy >= r.preaviso ? 'amarillo' : 'verde';
+  r.vencido = hoy > r.limite;
+  r.diasSin = Math.max(0, hoy + A + I - r.agot);
+  r.semanasSug = r.baja != null ? (r.baja - r.agot) / 7 : +cfg.semanas_horizonte;
+  r.sugerido = Math.ceil(r.porSemana * r.semanasSug / 100) * 100;
+  return r;
+}
+
+/* ============ DATOS ============ */
+let S = { obras: [], conteos: [], reimpresiones: [], config: {} };
+let filtroSala = 'Todas', corrigiendo = null; // id del conteo que se está corrigiendo
+const LS_DEMO = 'pdm-demo-v4', LS_CLAVE = 'pdm-clave', LS_QUIEN = 'pdm-quien', LS_APRUEBA = 'pdm-aprueba';
+const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
+const slug = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'obra';
+
+function demoApply(p) {
+  let d;
+  try { d = JSON.parse(ls.get(LS_DEMO)); } catch (e) {}
+  if (!d || !d.obras) {
+    d = JSON.parse(JSON.stringify(SEMILLA));
+    // Conteos por aprobar inventados, solo para mostrar la pantalla de la jefa de sala.
+    [['las-cautivas', 480, '20:15'], ['misery', 1210, '20:20'], ['el-bululu', 3000, '20:30']].forEach(([obra_id, stock, hora], i) =>
+      d.conteos.push({ id: 'ej' + i, fecha: iso(hoyN()), hora, obra_id, stock, contado_por: 'Asistente de sala', estado: 'pendiente', aprobado_por: '', nota: 'Ejemplo' }));
+  }
+  if (p && p.action === 'contar') {
+    p.items.forEach(it => d.conteos.push({ id: 'c' + Date.now() + it.obra_id, fecha: iso(hoyN()), hora: ahoraHM(), obra_id: it.obra_id, stock: it.stock, contado_por: p.contado_por, estado: 'pendiente', aprobado_por: '', nota: '' }));
+  } else if (p && p.action === 'aprobar') {
+    p.items.forEach(it => {
+      const c = d.conteos.find(x => x.id === it.id); if (!c) return;
+      d.conteos.forEach(x => { if (x !== c && x.obra_id === c.obra_id && x.fecha === c.fecha && vigente(x)) x.estado = 'reemplazado'; });
+      if (it.fecha) c.fecha = it.fecha;
+      c.stock = it.stock; c.estado = 'aprobado'; c.aprobado_por = p.aprobado_por;
+    });
+  } else if (p && p.action === 'corregir') {
+    const c = d.conteos.find(x => x.id === p.id);
+    if (c) { c.stock = p.stock; c.fecha = p.fecha; c.corregido_por = p.corregido_por; }
+  } else if (p && p.action === 'descartar') {
+    d.conteos.forEach(x => { if (p.ids.includes(x.id)) x.estado = 'descartado'; });
+  } else if (p && p.action === 'reimpresion') {
+    d.reimpresiones.push({ fecha: p.fecha, obra_id: p.obra_id, cantidad: p.cantidad, nota: p.nota || '', cargado_por: p.cargado_por || '' });
+  } else if (p && p.action === 'obra') {
+    const o = p.obra, ex = d.obras.find(x => x.id === o.id);
+    if (ex) Object.assign(ex, o);
+    else { let id = slug(o.nombre), n = 2; while (d.obras.some(x => x.id === id)) id = slug(o.nombre) + '-' + n++; d.obras.push(Object.assign({}, o, { id })); }
+  }
+  if (p) ls.set(LS_DEMO, JSON.stringify(d));
+  return Promise.resolve(d);
+}
+
+async function api(p) {
+  if (!API_URL) return demoApply(p);
+  const res = p
+    ? await fetch(API_URL, { method: 'POST', body: JSON.stringify(Object.assign({ clave: ls.get(LS_CLAVE) || $('clave').value }, p)) })
+    : await fetch(API_URL + '?action=datos');
+  if (!res.ok) throw new Error('El Sheet respondió ' + res.status);
+  const j = await res.json();
+  if (j.error) throw new Error(j.error);
+  return j;
+}
+
+/* ============ INTERFAZ ============ */
+const $ = id => document.getElementById(id);
+let toastT;
+function toast(msg) { const t = $('toast'); t.textContent = msg; t.hidden = false; clearTimeout(toastT); toastT = setTimeout(() => { t.hidden = true; }, 3200); }
+function aviso(html, err) { const a = $('aviso'); a.hidden = !html; a.className = 'aviso' + (err ? ' err' : ''); a.innerHTML = html || ''; }
+
+const GRUPOS = [
+  { cls: 'rojo', t: 'Reimprimir ya', de: ['rojo'] },
+  { cls: 'amarillo', t: 'Reimprimir pronto', de: ['amarillo'] },
+  { cls: 'neutro', t: 'Falta un dato', de: ['inconsistente', 'un-conteo', 'sin-datos'] },
+  { cls: 'verde', t: 'Con stock', de: ['verde', 'alcanza'] },
+  { cls: 'neutro', t: 'Sin funciones', de: ['espera'] }
+];
+
+function quienes(c) {
+  return [c.contado_por ? 'contó ' + esc(c.contado_por) : '', c.aprobado_por ? 'aprobó ' + esc(c.aprobado_por) : ''].filter(Boolean).join(', ');
+}
+function cuando(c, hoy) {
+  const d = hoy - dn(c.fecha);
+  return (d <= 0 ? 'hoy' : d === 1 ? 'ayer' : ff(dn(c.fecha))) + (c.hora ? ' ' + esc(c.hora) : '');
+}
+
+// Para cuánto alcanza: semanas enteras, o días si queda menos de una semana.
+function alcance(r, hoy) {
+  if (r.agot == null) return null;
+  const d = Math.max(0, r.agot - hoy);
+  if (d < 7) return { n: d, u: d === 1 ? 'día' : 'días' };
+  const w = Math.floor(d / 7);
+  return { n: w, u: w === 1 ? 'semana' : 'semanas' };
+}
+
+// Cuándo fue el último conteo aprobado. Pasados 10 días sin contar se marca.
+function contado(r) {
+  if (!r.ultimo) return '';
+  const d = r.diasDesde, hace = d <= 0 ? 'hoy' : d === 1 ? 'ayer' : 'hace ' + dias(d), viejo = d > +(S.config.dias_sin_conteo || CFG_DEF.dias_sin_conteo) && !r.espera;
+  return `<span class="o-c${viejo ? ' viejo' : ''}">Contado ${hace} (${ff(dn(r.ultimo.fecha))})${viejo ? ' · toca contar de nuevo' : ''}</span>`;
+}
+
+// Dos líneas por obra: qué hay y qué hacer.
+function textos(r, hoy) {
+  const quedan = r.ultimo ? `Quedan ${nf(r.stockHoy)}` : '';
+  switch (r.estado) {
+    case 'rojo': return [`${quedan} · se acaban el ${ff(r.agot)}`,
+      r.vencido ? `Ya es tarde: aunque se empiece hoy, faltan programas ${dias(r.diasSin)}.` : `Empezar la reimpresión esta semana. Último día: ${ff(r.limite)}.`];
+    case 'amarillo': return [`${quedan} · se acaban el ${ff(r.agot)}`, `Empezar la reimpresión antes del ${ff(r.limite)}.`];
+    case 'verde': return r.sinConsumo ? [`${quedan} · no bajó entre los últimos conteos`, '']
+      : [`${quedan} · se acaban el ${ff(r.agot)}`, `${r.espera ? 'Vuelve el ' + ff(r.inicio) + '. ' : ''}Empezar la reimpresión antes del ${ff(r.limite)}.`];
+    case 'alcanza': return [`${quedan} · alcanzan hasta el final (${ff(r.baja)})`, 'No hace falta reimprimir.'];
+    case 'inconsistente': return [`El conteo subió de ${nf(r.previo.stock)} a ${nf(r.ultimo.stock)}`, 'Falta anotar una reimpresión o corregir el conteo.'];
+    case 'un-conteo': return [`${quedan} · hay un solo conteo`, 'Con el próximo conteo se sabe para cuánto alcanza.'];
+    case 'espera': return [`${quedan} guardados`, `Vuelve el ${ff(r.inicio)}.`];
+    default: return [r.espera ? `Estrena el ${ff(r.inicio)}` : 'Todavía no se contó', 'Falta el primer conteo.'];
+  }
+}
+
+function detalle(r, hoy) {
+  const li = [];
+  if (r.agot != null && r.estado !== 'alcanza') {
+    li.push(['Empezar actualización (logos, cambios)', ff(r.limite)], ['Mandar a imprenta', ff(r.finArreglos)], ['Se acaban los programas', ff(r.agot)]);
+    li.push(['Cuánto pedir', `~${nf(r.sugerido)} (${r.baja != null ? 'hasta el final de la temporada' : Math.round(r.semanasSug) + ' semanas más'})`]);
+  }
+  if (r.porSemana != null) li.push(['Se usan por semana', nf(r.porSemana)]);
+  if (r.porFuncion != null) li.push(['Se usan por función', nf(r.porFuncion)]);
+  if (r.ultimo) li.push(['Último conteo', `${nf(r.ultimo.stock)} · ${cuando(r.ultimo, hoy)}`]);
+  r.pendientes.forEach(p => li.push(['Conteo sin aprobar', `${nf(p.stock)} · ${esc(p.contado_por)}, ${cuando(p, hoy)}`]));
+  li.push(['Sala', esc(r.obra.sala || '')]);
+  let h = `<ul class="ciclo">${li.map(([k, v]) => `<li><span>${k}</span><span>${v}</span></li>`).join('')}</ul>`;
+  if (r.conteos.length) {
+    h += `<div class="tabla" style="margin-top:14px"><table><thead><tr><th>Conteo</th><th>Quedaban</th><th>Contó y aprobó</th><th></th></tr></thead><tbody>${
+      r.conteos.slice().reverse().map(c => `<tr><td>${ff(dn(c.fecha))}${c.hora ? ' ' + esc(c.hora) : ''}</td><td>${nf(c.stock)}</td><td>${esc([c.contado_por, c.aprobado_por].filter(Boolean).join(' / '))}${c.corregido_por ? ' · corrigió ' + esc(c.corregido_por) : ''}</td><td><button class="enlace" type="button" data-corregir="${esc(c.id)}">Corregir</button></td></tr>`).join('')
+    }</tbody></table></div>`;
+    const c = r.conteos.find(x => x.id === corrigiendo);
+    if (c) h += `<form class="corr" data-corr="${esc(c.id)}" novalidate>
+      <h4>Corregir el conteo del ${ff(dn(c.fecha))}</h4>
+      <div class="corr-in">
+        <div class="campo"><label for="co-stock">Quedaban</label><input class="stock" type="number" id="co-stock" value="${esc(c.stock)}" inputmode="numeric" min="0" step="1"></div>
+        <div class="campo"><label for="co-fecha">Fecha del conteo</label><input type="date" id="co-fecha" value="${esc(c.fecha)}"></div>
+        <div class="campo"><label for="co-quien">Tu nombre</label><input type="text" id="co-quien" list="nombres" value="${esc(ls.get(LS_APRUEBA) || '')}" autocomplete="off"></div>
+      </div>
+      <div class="pend-acc"><button class="btn" type="submit">Guardar corrección</button><button class="enlace" type="button" data-descartar="${esc(c.id)}">Eliminar este conteo</button><button class="enlace" type="button" data-cancelar="1">Cancelar</button></div>
+    </form>`;
+  }
+  if (r.reimps.length) h += `<ul class="ciclo" style="margin-top:14px">${r.reimps.map(x => `<li><span>Reimpresión del ${ff(dn(x.fecha))}</span><span>+${nf(x.cantidad)}</span></li>`).join('')}</ul>`;
+  return h;
+}
+
+function activas(hoy) { return S.obras.filter(o => o.activa !== false && o.activa !== 'FALSE' && !(o.fecha_baja && dn(o.fecha_baja) < hoy)); }
+
+function renderTablero() {
+  const hoy = hoyN();
+  const todas = activas(hoy).map(o => calc(o, S, hoy));
+  const n = k => todas.filter(r => r.estado === k).length;
+  const obras = x => x === 1 ? '1 obra' : x + ' obras';
+  const partes = [n('rojo') ? `${obras(n('rojo'))} para reimprimir ya` : '', n('amarillo') ? `${obras(n('amarillo'))} para reimprimir pronto` : ''].filter(Boolean);
+  const nPend = S.conteos.filter(c => c.estado === 'pendiente').length;
+  $('n-pend').textContent = nPend ? ' ' + nPend : '';
+  $('titular').innerHTML = (partes.length ? 'Hay ' + partes.join(' y ') + '.' : 'Ninguna obra necesita reimpresión por ahora.')
+    + (nPend ? `<a href="#aprobar">${nPend === 1 ? 'Hay 1 conteo esperando' : 'Hay ' + nPend + ' conteos esperando'} aprobación</a>` : '');
+  const open = new Set([...document.querySelectorAll('.o[open]')].map(e => e.id));
+  $('lista').innerHTML = GRUPOS.map(g => {
+    const rs = todas.filter(r => g.de.includes(r.estado)).sort((a, b) => (a.agot ?? 1e9) - (b.agot ?? 1e9) || a.obra.nombre.localeCompare(b.obra.nombre));
+    if (!rs.length) return '';
+    return `<section><h2 class="g-t ${g.cls}">${g.t}</h2><div class="g-b">${rs.map(r => {
+      const id = 'o-' + r.obra.id, [que, hacer] = textos(r, hoy), al = alcance(r, hoy);
+      return `<details class="o" id="${esc(id)}"${open.has(id) ? ' open' : ''}>
+        <summary>
+          <span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span><span class="o-s">${que}</span>${hacer ? `<span class="o-a">${hacer}</span>` : ''}${contado(r)}</span>
+          ${al ? `<span class="o-r"><span class="o-w">${al.n}</span><span class="o-u">${al.u}</span></span>` : ''}
+        </summary>
+        <div class="o-det">${detalle(r, hoy)}</div>
+      </details>`;
+    }).join('')}</div></section>`;
+  }).join('') || '<p class="vacio">No hay obras en cartel. Agregá la primera en la pestaña Obras.</p>';
+}
+
+function renderContar() {
+  const hoy = hoyN(), obras = activas(hoy);
+  const salas = [...new Set(obras.map(o => o.sala))];
+  const prev = {}; document.querySelectorAll('#ct-filas input').forEach(i => { if (i.value) prev[i.id] = i.value; });
+  $('ct-filas').innerHTML = salas.map(s => `<p class="grupo-sala">${esc(s || 'Sin sala')}</p>` + obras.filter(o => o.sala === s).map(o => {
+    const r = calc(o, S, hoy);
+    return `<div class="fila-conteo">
+      <label for="ct-${esc(o.id)}">${esc(o.nombre)}<span class="ult">${r.ultimo ? `Último: ${nf(r.stockBase)} (${ff(dn(r.ultimo.fecha))})` : 'Sin conteos previos'}</span></label>
+      <input class="stock" type="number" id="ct-${esc(o.id)}" data-obra="${esc(o.id)}" data-base="${r.ultimo ? r.stockBase : ''}" inputmode="numeric" min="0" step="1" placeholder="Quedan">
+      <span class="sube" hidden>Es más que en el último conteo. Si es correcto, envialo igual: lo revisa la jefa de sala.</span>
+    </div>`;
+  }).join('')).join('') || '<p class="vacio">No hay obras en cartel.</p>';
+  Object.keys(prev).forEach(id => { const i = $(id); if (i) i.value = prev[id]; });
+  $('nombres').innerHTML = [...new Set(S.conteos.flatMap(c => [c.contado_por, c.aprobado_por]).filter(Boolean))].sort().map(n => `<option value="${esc(n)}">`).join('');
+}
+
+function renderAprobar() {
+  const hoy = hoyN();
+  const pend = S.conteos.filter(c => c.estado === 'pendiente').sort((a, b) => dn(a.fecha) - dn(b.fecha) || String(a.hora).localeCompare(String(b.hora)));
+  const prev = {}; document.querySelectorAll('#ap-filas input').forEach(i => { prev[i.id] = i.value; });
+  $('dir-sala').innerHTML = (API_URL ? `Dirección para las asistentes de sala: <span class="num">${esc(location.href.split('#')[0])}#sala</span>. ` : '') + '<a class="enlace" href="#sala">Abrir la pantalla de conteo</a>';
+  $('ap-filas').innerHTML = pend.map(c => {
+    const o = S.obras.find(x => x.id === c.obra_id) || { id: c.obra_id, nombre: c.obra_id };
+    const r = calc(o, S, hoy), dif = r.ultimo ? r.stockBase - c.stock : null;
+    return `<div class="pend">
+      <div><strong>${esc(o.nombre)}${c.nota === 'Ejemplo' ? ' <span class="pill">Ejemplo</span>' : ''}</strong>
+        <span class="ult">Contó ${esc(c.contado_por || 'sin nombre')} · ${cuando(c, hoy)}</span>
+        ${r.ultimo ? `<span class="ult${dif < 0 ? ' sube' : ''}">Último aprobado: ${nf(r.stockBase)} (${ff(dn(r.ultimo.fecha))}) · ${dif < 0 ? 'sube ' + nf(-dif) + ': revisar si entró una reimpresión' : 'bajó ' + nf(dif)}</span>` : '<span class="ult">Primer conteo de la obra</span>'}
+      </div>
+      <div class="pend-in">
+        <div class="campo"><label for="ap-${esc(c.id)}">Quedan</label><input class="stock" type="number" id="ap-${esc(c.id)}" data-id="${esc(c.id)}" value="${esc(c.stock)}" inputmode="numeric" min="0" step="1"></div>
+        <div class="campo"><label for="apf-${esc(c.id)}">Fecha del conteo</label><input type="date" id="apf-${esc(c.id)}" value="${esc(c.fecha)}"></div>
+      </div>
+      <div class="pend-acc"><button class="btn" type="button" data-aprobar="${esc(c.id)}">Aprobar</button><button class="enlace" type="button" data-descartar="${esc(c.id)}">Descartar</button></div>
+    </div>`;
+  }).join('') || '<p class="vacio">No hay conteos por aprobar. Cuando una asistente envíe uno, aparece acá.</p>';
+  Object.keys(prev).forEach(id => { const i = $(id); if (i) i.value = prev[id]; });
+  $('ap-todo').hidden = pend.length < 2;
+  const obras = activas(hoy), sel = $('ri-obra'), v = sel.value;
+  sel.innerHTML = obras.map(o => `<option value="${esc(o.id)}">${esc(o.nombre)} (${esc(o.sala)})</option>`).join('');
+  if (v) sel.value = v;
+}
+
+function renderObras() {
+  $('ob-lista').innerHTML = S.obras.map(o => `<div class="obra-item"><div><strong>${esc(o.nombre)}</strong><small>${[
+    esc(o.sala), +o.funciones_semana > 0 ? (+o.funciones_semana === 1 ? '1 función' : esc(o.funciones_semana) + ' funciones') + ' por semana' : '', o.fecha_inicio && dn(o.fecha_inicio) > hoyN() ? 'sin funciones hasta ' + ff(dn(o.fecha_inicio)) : '', o.fecha_baja ? 'baja ' + ff(dn(o.fecha_baja)) : '',
+    o.activa === false || o.activa === 'FALSE' ? 'fuera de cartel' : ''].filter(Boolean).join(' · ')}</small></div>
+    <button type="button" data-editar="${esc(o.id)}">Editar</button></div>`).join('') || '<p class="vacio">Todavía no hay obras.</p>';
+}
+
+function render() { renderTablero(); renderContar(); renderAprobar(); renderObras(); }
+
+function editarObra(o) {
+  $('ob-id').value = o ? o.id : ''; $('ob-nombre').value = o ? o.nombre : '';
+  if (o && o.sala && ![...$('ob-sala').options].some(x => x.value === o.sala)) $('ob-sala').add(new Option(o.sala));
+  $('ob-sala').value = o ? o.sala : 'Sala 1';
+  $('ob-func').value = o ? o.funciones_semana : ''; $('ob-baja').value = o ? o.fecha_baja : ''; $('ob-inicio').value = o ? (o.fecha_inicio || '') : '';
+  $('ob-activa').checked = o ? !(o.activa === false || o.activa === 'FALSE') : true;
+  $('ob-titulo').textContent = o ? 'Editar obra' : 'Agregar obra';
+  $('ob-cancelar').hidden = !o;
+  if (o) $('f-obra').scrollIntoView({ block: 'start' });
+}
+
+async function enviar(payload, boton, ok) {
+  boton.disabled = true;
+  try {
+    S = await api(payload);
+    if ($('clave').value) ls.set(LS_CLAVE, $('clave').value);
+    $('clave-panel').hidden = true; aviso(API_URL ? '' : avisoDemo());
+    render(); toast(ok); return true;
+  } catch (e) {
+    if (/clave/i.test(e.message)) { ls.del(LS_CLAVE); $('clave-panel').hidden = false; $('clave').focus(); aviso('La clave de gestión falta o no coincide. Escribila arriba y probá de nuevo.', true); }
+    else aviso('No se pudo guardar: ' + esc(e.message) + '. Revisá la conexión y probá otra vez.', true);
+    return false;
+  } finally { boton.disabled = false; }
+}
+
+const avisoDemo = () => 'Demo: los conteos por aprobar son ejemplos inventados. <button type="button" id="demo-reset">Restablecer</button>';
+
+function irA(tab) {
+  if (tab === 'contar') tab = 'sala';
+  if (!['tablero', 'aprobar', 'obras', 'sala'].includes(tab)) tab = 'tablero';
+  const sala = tab === 'sala', vista = sala ? 'contar' : tab;   // #sala = entrada de las asistentes: solo el conteo
+  document.body.classList.toggle('modo-sala', sala);
+  document.querySelectorAll('.vista').forEach(v => { v.hidden = v.id !== 'v-' + vista; });
+  document.querySelectorAll('.tabs a').forEach(a => a.dataset.tab === tab ? a.setAttribute('aria-current', 'page') : a.removeAttribute('aria-current'));
+}
+
+async function aprobar(ids, boton) {
+  const quien = $('ap-quien').value.trim();
+  if (!quien) { $('ap-quien').focus(); return aviso('Anotá quién aprueba.', true); }
+  const items = ids.map(id => ({ id, stock: $('ap-' + id).value === '' ? NaN : Math.round(+$('ap-' + id).value), fecha: $('apf-' + id).value }));
+  if (items.some(it => !(it.stock >= 0) || !it.fecha)) return aviso('Hay un número o una fecha sin completar.', true);
+  ls.set(LS_APRUEBA, quien);
+  await enviar({ action: 'aprobar', aprobado_por: quien, items }, boton, items.length === 1 ? 'Conteo aprobado' : items.length + ' conteos aprobados');
+}
+
+async function cargar() {
+  $('estado-con').innerHTML = `Hoy: <strong>${ff(hoyN())}</strong><br>${API_URL ? 'Conectando con el Sheet…' : 'Modo demo'}`;
+  try {
+    S = await api();
+    $('estado-con').innerHTML = `Hoy: <strong>${ff(hoyN())}</strong><br>${API_URL ? 'Conectado al Sheet' : 'Modo demo'}`;
+    aviso(API_URL ? '' : avisoDemo());
+    if (API_URL && S.config && S.config.requiere_clave && !ls.get(LS_CLAVE)) $('clave-panel').hidden = false;
+    render();
+  } catch (e) {
+    $('estado-con').innerHTML = `Hoy: <strong>${ff(hoyN())}</strong><br>Sin conexión`;
+    $('lista').innerHTML = '<p class="vacio">No se pudieron leer los datos.</p>';
+    aviso('No se pudo leer el Sheet: ' + esc(e.message) + '. <button type="button" id="reintentar">Reintentar</button>', true);
+  }
+}
+
+function iniciar() {
+  $('ri-fecha').value = iso(hoyN());
+  $('ct-quien').value = ls.get(LS_QUIEN) || ''; $('ap-quien').value = ls.get(LS_APRUEBA) || '';
+  irA(location.hash.slice(1)); addEventListener('hashchange', () => irA(location.hash.slice(1)));
+
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t.dataset.sala) { filtroSala = t.dataset.sala; renderTablero(); }
+    else if (t.dataset.editar) editarObra(S.obras.find(o => o.id === t.dataset.editar));
+    else if (t.id === 'demo-reset') { ls.del(LS_DEMO); cargar(); toast('Demo restablecida'); }
+    else if (t.id === 'reintentar') cargar();
+    else if (t.id === 'ob-cancelar') editarObra(null);
+    else if (t.dataset.aprobar) aprobar([t.dataset.aprobar], t);
+    else if (t.dataset.descartar) { corrigiendo = null; enviar({ action: 'descartar', ids: [t.dataset.descartar] }, t, 'Conteo eliminado'); }
+    else if (t.dataset.corregir) { corrigiendo = t.dataset.corregir; renderTablero(); const f = document.querySelector('.corr'); if (f) f.scrollIntoView({ block: 'center' }); }
+    else if (t.dataset.cancelar) { corrigiendo = null; renderTablero(); }
+    else if (t.id === 'seg-pend' || t.id === 'seg-reimp') {
+      const c = t.id === 'seg-pend';
+      $('seg-pend').setAttribute('aria-pressed', c); $('seg-reimp').setAttribute('aria-pressed', !c);
+      $('f-aprobar').hidden = !c; $('f-reimp').hidden = c;
+    }
+  });
+
+  $('ct-filas').addEventListener('input', e => {
+    const i = e.target; if (!i.dataset.obra) return;
+    i.parentElement.querySelector('.sube').hidden = !(i.dataset.base !== '' && i.value !== '' && +i.value > +i.dataset.base);
+  });
+
+  $('f-conteo').addEventListener('submit', async e => {
+    e.preventDefault();
+    const items = [...document.querySelectorAll('#ct-filas input')].filter(i => i.value !== '' && +i.value >= 0).map(i => ({ obra_id: i.dataset.obra, stock: Math.round(+i.value) }));
+    const conto = $('ct-quien').value.trim();
+    if (!conto) { $('ct-quien').focus(); return aviso('Escribí tu nombre para enviar el conteo.', true); }
+    if (!items.length) return aviso('Anotá cuántos quedan de al menos una obra.', true);
+    ls.set(LS_QUIEN, conto);
+    const ok = await enviar({ action: 'contar', contado_por: conto, items }, $('ct-guardar'), 'Conteo enviado');
+    if (ok) {
+      document.querySelectorAll('#ct-filas input').forEach(i => { i.value = ''; }); renderContar();
+      $('ct-ok').hidden = false;
+      $('ct-ok').textContent = `Conteo enviado: ${items.length === 1 ? '1 obra' : items.length + ' obras'}, ${ff(hoyN())} a las ${ahoraHM()}. Queda pendiente hasta que lo apruebe la jefa de sala.`;
+      scrollTo(0, 0);
+    }
+  });
+
+  document.addEventListener('submit', async e => {
+    const f = e.target; if (!f.dataset.corr) return;
+    e.preventDefault();
+    const quien = $('co-quien').value.trim(), stock = $('co-stock').value === '' ? NaN : Math.round(+$('co-stock').value), fecha = $('co-fecha').value;
+    if (!quien) { $('co-quien').focus(); return aviso('Anotá quién corrige.', true); }
+    if (!(stock >= 0) || !fecha) return aviso('Completá el número y la fecha.', true);
+    ls.set(LS_APRUEBA, quien);
+    const id = f.dataset.corr; corrigiendo = null;
+    const ok = await enviar({ action: 'corregir', id, stock, fecha, corregido_por: quien }, f.querySelector('.btn'), 'Conteo corregido');
+    if (!ok) { corrigiendo = id; renderTablero(); }
+  });
+
+  $('f-aprobar').addEventListener('submit', e => {
+    e.preventDefault();
+    aprobar([...document.querySelectorAll('#ap-filas input[data-id]')].map(i => i.dataset.id), $('ap-todo'));
+  });
+
+  $('f-reimp').addEventListener('submit', async e => {
+    e.preventDefault();
+    const cant = Math.round(+$('ri-cant').value);
+    if (!$('ri-obra').value || !$('ri-fecha').value || !(cant > 0)) return aviso('Completá obra, fecha y una cantidad mayor a cero.', true);
+    const ok = await enviar({ action: 'reimpresion', obra_id: $('ri-obra').value, fecha: $('ri-fecha').value, cantidad: cant, nota: $('ri-nota').value.trim(), cargado_por: $('ap-quien').value.trim() }, $('ri-guardar'),
+      `Reimpresión registrada: +${nf(cant)}`);
+    if (ok) { $('ri-cant').value = ''; $('ri-nota').value = ''; location.hash = 'tablero'; }
+  });
+
+  $('f-obra').addEventListener('submit', async e => {
+    e.preventDefault();
+    const nombre = $('ob-nombre').value.trim();
+    if (!nombre) return aviso('La obra necesita un nombre.', true);
+    const ok = await enviar({ action: 'obra', obra: { id: $('ob-id').value, nombre, sala: $('ob-sala').value, funciones_semana: $('ob-func').value, fecha_inicio: $('ob-inicio').value, fecha_baja: $('ob-baja').value, activa: $('ob-activa').checked } },
+      $('ob-guardar'), 'Obra guardada');
+    if (ok) editarObra(null);
+  });
+
+  cargar();
+}
+iniciar();
+</script>
+</body>
+</html>
