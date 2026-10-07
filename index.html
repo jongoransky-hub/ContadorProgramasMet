@@ -179,6 +179,9 @@ input[type="text"], input[type="number"], input[type="date"], input[type="passwo
   width: 100%; min-width: 0; padding: 10px; border: 1px solid var(--line); background: var(--bg); border-radius: 0; font-size: 16px; }
 input.stock { font-family: var(--f-data); text-align: right; }
 .check { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+.campo.ancho { grid-column: 1 / -1; }
+.dias { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 4px 0; }
+.dias input { width: 18px; height: 18px; }
 .grupo-sala { font: 700 12px/1 var(--f-display); font-stretch: 88%; text-transform: uppercase; letter-spacing: .07em; color: var(--muted); padding-top: 6px; }
 .fila-conteo { display: grid; grid-template-columns: minmax(0, 1fr) 120px; gap: 4px 12px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
 .fila-conteo label { font-weight: 600; overflow-wrap: anywhere; }
@@ -305,11 +308,34 @@ body.modo-sala .tabs, body.modo-sala #clave-panel { display: none; }
         <div class="campo"><label for="ob-nombre">Nombre</label><input type="text" id="ob-nombre" required></div>
         <div class="campo"><label for="ob-sala">Sala</label><select id="ob-sala"><option>Sala 1</option><option>Sala 2</option></select></div>
         <div class="campo"><label for="ob-func">Funciones por semana</label><input class="stock" type="number" id="ob-func" inputmode="numeric" min="0" step="1"></div>
+        <div class="campo ancho"><span class="lab">Días de función</span>
+          <div class="dias" id="ob-dias">
+            <label class="check"><input type="checkbox" id="ob-d-lu" value="lu"> Lun</label>
+            <label class="check"><input type="checkbox" id="ob-d-ma" value="ma"> Mar</label>
+            <label class="check"><input type="checkbox" id="ob-d-mi" value="mi"> Mié</label>
+            <label class="check"><input type="checkbox" id="ob-d-ju" value="ju"> Jue</label>
+            <label class="check"><input type="checkbox" id="ob-d-vi" value="vi"> Vie</label>
+            <label class="check"><input type="checkbox" id="ob-d-sa" value="sa"> Sáb</label>
+            <label class="check"><input type="checkbox" id="ob-d-do" value="do"> Dom</label>
+          </div>
+        </div>
+        <div class="campo ancho"><span class="lab">De esos días, cuáles tienen doble función</span>
+          <div class="dias" id="ob-dobles">
+            <label class="check"><input type="checkbox" id="ob-x-lu" value="lu"> Lun</label>
+            <label class="check"><input type="checkbox" id="ob-x-ma" value="ma"> Mar</label>
+            <label class="check"><input type="checkbox" id="ob-x-mi" value="mi"> Mié</label>
+            <label class="check"><input type="checkbox" id="ob-x-ju" value="ju"> Jue</label>
+            <label class="check"><input type="checkbox" id="ob-x-vi" value="vi"> Vie</label>
+            <label class="check"><input type="checkbox" id="ob-x-sa" value="sa"> Sáb</label>
+            <label class="check"><input type="checkbox" id="ob-x-do" value="do"> Dom</label>
+          </div>
+        </div>
+        <div class="campo ancho"><label for="ob-sin">Fechas sin función</label><input type="text" id="ob-sin" placeholder="Por ejemplo: 25/10, 1/11" autocomplete="off"></div>
         <div class="campo"><label for="ob-inicio">Estreno o regreso</label><input type="date" id="ob-inicio"></div>
-        <div class="campo"><label for="ob-baja">Fecha de baja</label><input type="date" id="ob-baja"></div>
+        <div class="campo"><label for="ob-baja">Última función</label><input type="date" id="ob-baja"></div>
       </div>
       <label class="check"><input type="checkbox" id="ob-activa" checked> En cartel</label>
-      <p class="ayuda">Con las funciones por semana aparece el consumo por función. Con la fecha de baja, la reimpresión sugerida se corta al final de la temporada. Una obra con estreno o regreso futuro queda sin funciones hasta ese día y no descuenta stock.</p>
+      <p class="ayuda">Con los días de función marcados, la cuenta se hace función por función y saltea las fechas sin función. Sin días marcados, el consumo se reparte parejo por día. Todo se calcula hasta la última función de la obra o hasta el fin de temporada, lo que llegue antes.</p>
       <div class="acciones">
         <button class="btn" type="submit" id="ob-guardar">Guardar obra</button>
         <button class="btn sec" type="button" id="ob-cancelar" hidden>Cancelar</button>
@@ -331,16 +357,17 @@ const VENTANA = 84; // días que muestra la tira (12 semanas)
 
 const SEMILLA = {
   obras: [
-    { id: 'desde-el-jardin', nombre: 'Desde el Jardín', sala: 'Sala 1', funciones_semana: 5, fecha_inicio: '', fecha_baja: '', activa: true },
-    { id: 'modelo-vivo-muerto', nombre: 'Modelo Vivo Muerto', sala: 'Sala 1', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
-    { id: 'habitacion-macbeth', nombre: 'Habitación Macbeth', sala: 'Sala 1', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
-    { id: 'las-cautivas', nombre: 'Las Cautivas', sala: 'Sala 1', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
-    { id: 'cuestion-de-genero', nombre: 'Cuestión de Género', sala: 'Sala 2', funciones_semana: 5, fecha_inicio: '', fecha_baja: '', activa: true },
-    { id: 'misery', nombre: 'Misery', sala: 'Sala 2', funciones_semana: 4, fecha_inicio: '', fecha_baja: '', activa: true },
-    { id: 'othelo', nombre: 'Othelo', sala: 'Sala 2', funciones_semana: 1, fecha_inicio: '', fecha_baja: '', activa: true },
-    { id: 'el-bululu', nombre: 'El Bululú', sala: 'Sala 2', funciones_semana: '', fecha_inicio: '2026-11-03', fecha_baja: '', activa: true },
-    { id: 'suavecita', nombre: 'Suavecita', sala: 'Sala 2', funciones_semana: '', fecha_inicio: '2027-01-01', fecha_baja: '', activa: true }
-  ],
+    ['desde-el-jardin', 'Desde el Jardín', 'Sala 1', 5, 'ju,vi,sa,sa,do', '', '', '2026-11-29'],
+    ['modelo-vivo-muerto', 'Modelo Vivo Muerto', 'Sala 1', 1, 'mi', '', '', '2026-11-11'],
+    ['habitacion-macbeth', 'Habitación Macbeth', 'Sala 1', 1, 'sa', '', '', '2026-11-28'],
+    ['las-cautivas', 'Las Cautivas', 'Sala 1', 1, 'do', '2026-10-25,2026-11-01', '', '2026-11-15'],
+    ['petroleo', 'Petróleo', 'Sala 1', 2, 'ma,mi', '', '2026-11-17', '2026-11-25'],
+    ['cuestion-de-genero', 'Cuestión de Género', 'Sala 2', 5, 'mi,ju,vi,sa,do', '', '', '2026-11-29'],
+    ['misery', 'Misery', 'Sala 2', 4, 'ju,vi,sa,do', '', '', ''],
+    ['othelo', 'Othelo', 'Sala 2', 1, 'mi', '', '', '2026-11-25'],
+    ['el-bululu', 'El Bululú', 'Sala 2', 1, 'ma', '', '2026-11-03', '2026-11-24'],
+    ['suavecita', 'Suavecita', 'Sala 2', '', '', '', '2027-01-01', '']
+  ].map(([id, nombre, sala, funciones_semana, dias_funcion, sin_funcion, fecha_inicio, fecha_baja]) => ({ id, nombre, sala, funciones_semana, dias_funcion, sin_funcion, fecha_inicio, fecha_baja, activa: true })),
   conteos: [
     ['2026-09-15', 'desde-el-jardin', 28500], ['2026-09-29', 'desde-el-jardin', 25000],
     ['2026-09-15', 'modelo-vivo-muerto', 1800], ['2026-09-29', 'modelo-vivo-muerto', 1500],
@@ -357,7 +384,6 @@ const SEMILLA = {
 
 /* ============ FECHAS Y FORMATO ============ */
 const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
-const dn = s => { const [y, m, d] = String(s).slice(0, 10).split('-').map(Number); return Math.round(Date.UTC(y, m - 1, d) / 864e5); };
 const vigente = c => !c.estado || c.estado === 'aprobado';
 const ahoraHM = () => { const t = new Date(); return ('0' + t.getHours()).slice(-2) + ':' + ('0' + t.getMinutes()).slice(-2); };
 const iso = n => new Date(n * 864e5).toISOString().slice(0, 10);
@@ -368,63 +394,161 @@ const anio = n => new Date(n * 864e5).getUTCFullYear();
 const dias = n => n + (n === 1 ? ' día' : ' días');
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-/* ============ CÁLCULO ============
-   Consumo = stock anterior + reimpresiones que entraron - stock nuevo, sobre los últimos 4 períodos.
-   Agotamiento = último conteo + stock / consumo diario.
-   Límite de arranque = agotamiento - (arreglos + imprenta). Rojo desde una semana antes (margen). */
-function calc(o, S, hoy) {
-  const cfg = Object.assign({}, CFG_DEF, S.config);
-  const A = +cfg.semanas_arreglos * 7, I = +cfg.semanas_imprenta * 7, M = +cfg.semanas_margen * 7, P = +cfg.semanas_preaviso * 7;
-  const cs = S.conteos.filter(c => c.obra_id === o.id && vigente(c)).sort((a, b) => dn(a.fecha) - dn(b.fecha) || String(a.hora || '').localeCompare(String(b.hora || '')));
-  const rs = S.reimpresiones.filter(r => r.obra_id === o.id).sort((a, b) => dn(a.fecha) - dn(b.fecha));
-  const ingreso = (desde, hasta) => rs.reduce((t, r) => { const d = dn(r.fecha); return t + (d > desde && d <= hasta ? +r.cantidad : 0); }, 0);
-  const r = { obra: o, conteos: cs, reimps: rs, estado: 'sin-datos', intervalos: [], baja: null, inicio: o.fecha_inicio ? dn(o.fecha_inicio) : null,
-    pendientes: S.conteos.filter(c => c.obra_id === o.id && c.estado === 'pendiente') };
-  r.espera = r.inicio != null && r.inicio > hoy; // sin funciones hasta el estreno o el regreso
-  // Tope de todo el cálculo: el fin de temporada, o la baja de la obra si llega antes.
-  const fin = cfg.fin_temporada ? dn(cfg.fin_temporada) : null, bajaObra = o.fecha_baja ? dn(o.fecha_baja) : null;
-  r.fin = fin; r.baja = bajaObra != null && (fin == null || bajaObra < fin) ? bajaObra : fin;
-  r.bajaEsFin = r.baja != null && r.baja === fin;
+/* ============ NÚCLEO DE CÁLCULO ============
+   Este bloque es idéntico en la app (index.html) y en el Apps Script (Code.gs): la misma cuenta en los dos lados.
+
+   Cómo se calcula
+   - Cada obra tiene un calendario: días de la semana con función (un día repetido = doble función),
+     fechas sin función, estreno y baja.
+     Si no hay días cargados, se asume consumo parejo todos los días.
+   - Consumo por función = programas usados entre conteos / funciones que hubo entre esos conteos
+     (últimos 4 períodos; "usados" = stock anterior + reimpresiones que entraron - stock nuevo).
+   - Un conteo hecho el día de una función se toma como previo a esa función.
+   - Se recorren las funciones que quedan, descontando ese consumo, hasta la primera que queda sin programas.
+     Una función cuenta como cubierta si queda al menos la mitad de lo que suele usarse.
+   - Tope: el fin de temporada, o la baja de la obra si llega antes. Nada se calcula más allá.
+   - Último día para empezar la reimpresión = primera función sin programas - (actualización + imprenta).
+     "Reimprimir ya" desde una semana antes de ese día; "reimprimir pronto" desde dos semanas antes de eso. */
+var DIAS_SEM = ['do', 'lu', 'ma', 'mi', 'ju', 'vi', 'sa'];
+
+function dn(s) { var m = String(s).slice(0, 10).split('-'); return Math.round(Date.UTC(+m[0], +m[1] - 1, +m[2]) / 864e5); }
+
+// "ju, vi, sa, sa, do" -> ['ju', 'vi', 'sa', 'sa', 'do']. Un día repetido es un día con doble función.
+// Acepta nombres completos y con tilde (miércoles, sábado).
+function listaDias(v) {
+  var out = [];
+  String(v || '').toLowerCase().split(/[^a-zñáéíóú]+/).forEach(function (x) {
+    var c = x.slice(0, 2).replace('á', 'a').replace('é', 'e');
+    if (DIAS_SEM.indexOf(c) >= 0 && out.filter(function (y) { return y === c; }).length < 3) out.push(c);
+  });
+  return out;
+}
+
+// "2026-10-25, 2026-11-01" -> { díaN: true }
+function fechasSinFuncion(v) {
+  var out = {};
+  String(v || '').split(/[,;\s]+/).forEach(function (x) { if (/^\d{4}-\d{2}-\d{2}$/.test(x)) out[dn(x)] = true; });
+  return out;
+}
+
+function calcNucleo(o, conteos, reimpresiones, cfg, hoy) {
+  function num(k, def) { var v = Number(cfg[k]); return cfg[k] === '' || cfg[k] == null || isNaN(v) ? def : v; }
+  var A = num('semanas_arreglos', 1) * 7, I = num('semanas_imprenta', 2) * 7, M = num('semanas_margen', 1) * 7, P = num('semanas_preaviso', 2) * 7;
+
+  var dias = listaDias(o.dias_funcion), conCal = dias.length > 0, excl = fechasSinFuncion(o.sin_funcion);
+  var inicio = o.fecha_inicio ? dn(o.fecha_inicio) : null;
+  var fin = cfg.fin_temporada ? dn(cfg.fin_temporada) : null, bajaObra = o.fecha_baja ? dn(o.fecha_baja) : null;
+  var tope = bajaObra != null && (fin == null || bajaObra < fin) ? bajaObra : fin;
+
+  // Cuántas funciones hay ese día. Sin días cargados, cada día cuenta como una.
+  var porDiaSem = {};
+  dias.forEach(function (c) { porDiaSem[c] = (porDiaSem[c] || 0) + 1; });
+  function funcionesDia(d) {
+    if (excl[d] || (inicio != null && d < inicio) || (tope != null && d > tope)) return 0;
+    return conCal ? (porDiaSem[DIAS_SEM[new Date(d * 864e5).getUTCDay()]] || 0) : 1;
+  }
+  function funciones(desde, hasta) { var n = 0; for (var d = desde; d < hasta; d++) n += funcionesDia(d); return n; }   // desde incluido, hasta excluido
+
+  var cs = conteos.filter(function (c) { return c.obra_id === o.id && (!c.estado || c.estado === 'aprobado'); })
+    .sort(function (a, b) { return dn(a.fecha) - dn(b.fecha) || String(a.hora || '').localeCompare(String(b.hora || '')); });
+  var rs = reimpresiones.filter(function (x) { return x.obra_id === o.id; }).sort(function (a, b) { return dn(a.fecha) - dn(b.fecha); });
+  function ingreso(desde, hasta) { return rs.reduce(function (t, x) { var d = dn(x.fecha); return t + (d > desde && d <= hasta ? Number(x.cantidad) : 0); }, 0); }
+
+  var r = { estado: 'sin-datos', conteos: cs, reimps: rs, intervalos: [], inicio: inicio, fin: fin, baja: tope, bajaEsFin: tope != null && tope === fin,
+    conCalendario: conCal, dias: dias, A: A, I: I };
+  r.espera = inicio != null && inicio > hoy;                    // sin funciones hasta el estreno o el regreso
+  r.funcionesRestantes = tope != null ? funciones(hoy, tope + 1) : null;
   if (!cs.length) return r;
-  const ult = cs[cs.length - 1], dUlt = dn(ult.fecha);
+
+  var ult = cs[cs.length - 1], dUlt = dn(ult.fecha);
   r.ultimo = ult; r.diasDesde = hoy - dUlt;
-  r.stockBase = +ult.stock + ingreso(dUlt, Infinity);
+  r.stockBase = Number(ult.stock) + ingreso(dUlt, Infinity);
   r.stockHoy = r.stockBase;
-  for (let i = 1; i < cs.length; i++) {
-    const d0 = dn(cs[i - 1].fecha), d1 = dn(cs[i].fecha), entra = ingreso(d0, d1);
-    r.intervalos.push({ desde: d0, hasta: d1, dias: d1 - d0, entra, consumo: +cs[i - 1].stock + entra - +cs[i].stock });
+  for (var i = 1; i < cs.length; i++) {
+    var d0 = dn(cs[i - 1].fecha), d1 = dn(cs[i].fecha), entra = ingreso(d0, d1);
+    r.intervalos.push({ desde: d0, hasta: d1, dias: d1 - d0, entra: entra, consumo: Number(cs[i - 1].stock) + entra - Number(cs[i].stock), funciones: funciones(d0, d1) });
   }
-  if (fin != null && hoy > fin) { r.estado = 'cerrada'; return r; }                                   // la temporada ya terminó
-  if (r.espera && fin != null && r.inicio > fin) { r.estado = 'espera'; r.otraTemporada = true; return r; } // vuelve en la temporada siguiente
+  if (fin != null && hoy > fin) { r.estado = 'cerrada'; return r; }                                           // la temporada ya terminó
+  if (r.espera && fin != null && inicio > fin) { r.estado = 'espera'; r.otraTemporada = true; return r; }      // vuelve en la temporada siguiente
   if (cs.length < 2) { r.estado = r.espera ? 'espera' : 'un-conteo'; return r; }
-  const ultInt = r.intervalos[r.intervalos.length - 1];
-  if (ultInt.consumo < 0) { r.estado = 'inconsistente'; r.previo = cs[cs.length - 2]; return r; }
-  const usados = r.intervalos.slice(-4).filter(x => x.consumo >= 0 && x.dias > 0);
-  const totC = usados.reduce((t, x) => t + x.consumo, 0), totD = usados.reduce((t, x) => t + x.dias, 0);
-  const porDia = totD ? totC / totD : 0;
-  r.porSemana = porDia * 7;
-  if (+o.funciones_semana > 0) r.porFuncion = r.porSemana / +o.funciones_semana;
-  if (porDia <= 0) { r.estado = 'verde'; r.sinConsumo = true; return r; }
-  const base = r.espera ? r.inicio : dUlt; // el consumo corre desde el último conteo, o desde el regreso si está en pausa
-  r.agot = base + Math.floor(r.stockBase / porDia);
-  r.stockHoy = Math.max(0, Math.round(r.stockBase - porDia * Math.max(0, hoy - base)));
-  r.cobertura = (r.agot - hoy) / 7;
-  r.limite = r.agot - A - I; r.finArreglos = r.limite + A; r.arranque = r.limite - M; r.preaviso = r.arranque - P;
-  if (r.baja != null && r.agot >= r.baja) {
-    r.estado = 'alcanza'; r.sobrante = Math.max(0, Math.round(r.stockBase - porDia * (r.baja - base))); return r;
+  if (r.intervalos[r.intervalos.length - 1].consumo < 0) { r.estado = 'inconsistente'; r.previo = cs[cs.length - 2]; return r; }
+
+  var usados = r.intervalos.slice(-4).filter(function (x) { return x.consumo >= 0 && x.funciones > 0; });
+  var totC = usados.reduce(function (t, x) { return t + x.consumo; }, 0), totF = usados.reduce(function (t, x) { return t + x.funciones; }, 0);
+  if (!totF) { r.estado = r.espera ? 'espera' : 'un-conteo'; r.sinFuncionesEntreConteos = true; return r; }
+  var pf = totC / totF;                                         // programas por función (o por día, si no hay días cargados)
+  r.porSemana = pf * (conCal ? dias.length : 7);
+  r.porFuncion = conCal ? pf : (Number(o.funciones_semana) > 0 ? r.porSemana / Number(o.funciones_semana) : null);
+  if (pf <= 0) { r.estado = 'verde'; r.sinConsumo = true; return r; }
+
+  r.stockHoy = Math.max(0, Math.round(r.stockBase - pf * funciones(dUlt, hoy)));
+
+  // Recorrer las funciones desde el último conteo hasta el tope.
+  var stock = r.stockBase, hasta = tope != null ? tope : hoy + 730, agot = null, cubierta = null, resto = 0;
+  for (var d = dUlt; d <= hasta && agot == null; d++) {
+    for (var k = funcionesDia(d); k > 0 && agot == null; k--) {
+      if (stock + 1e-9 < pf / 2) { agot = d; resto = Math.max(0, stock); }    // queda menos de la mitad de lo que se usa: esa función ya no se cubre
+      else { stock = Math.max(0, stock - pf); cubierta = d; }
+    }
   }
+  r.cubierta = cubierta;                                        // última función con programas
+  if (agot == null) { r.estado = 'alcanza'; r.sobrante = Math.max(0, Math.round(stock)); return r; }
+
+  r.agot = agot;                                                // primera función sin programas
+  r.limite = agot - A - I; r.finArreglos = r.limite + A; r.arranque = r.limite - M; r.preaviso = r.arranque - P;
   r.estado = hoy >= r.arranque ? 'rojo' : hoy >= r.preaviso ? 'amarillo' : 'verde';
-  r.vencido = hoy > r.limite;
-  r.diasSin = Math.max(0, hoy + A + I - r.agot);
-  r.semanasSug = r.baja != null ? (r.baja - r.agot) / 7 : +cfg.semanas_horizonte;
-  r.sugerido = Math.ceil(r.porSemana * r.semanasSug / 100) * 100;
+  r.vencido = hoy > r.limite;                                   // ya no llega para la primera función sin programas
+  r.llegada = r.vencido ? hoy + A + I : agot;                   // cuándo estaría la reimpresión
+  r.diasSin = Math.max(0, hoy + A + I - agot);
+  r.funcionesSin = r.vencido ? funciones(Math.max(agot, hoy), r.llegada) : 0;  // funciones que quedan sin programas aunque se empiece hoy
+
+  // Cuánto pedir: lo que hace falta desde que llega la reimpresión hasta el tope.
+  var finPedido = tope != null ? tope : agot + num('semanas_horizonte', 12) * 7;
+  r.funcionesAPedir = funciones(r.llegada, finPedido + 1);
+  r.pedirHasta = finPedido;
+  r.sugerido = Math.max(0, Math.ceil((r.funcionesAPedir * pf - (r.vencido ? 0 : resto)) / 100 - 1e-9) * 100);
+  r.sinSentido = r.funcionesAPedir === 0;                       // la reimpresión llegaría después de la última función
   return r;
+}
+/* ============ FIN DEL NÚCLEO ============ */
+
+function calc(o, S, hoy) {
+  const r = calcNucleo(o, S.conteos, S.reimpresiones, Object.assign({}, CFG_DEF, S.config), hoy);
+  r.obra = o;
+  r.pendientes = S.conteos.filter(c => c.obra_id === o.id && c.estado === 'pendiente');
+  return r;
+}
+
+// Días de función, para mostrar: ['mi', 'do'] -> "mié y dom"
+const DIAS_ORDEN = ['lu', 'ma', 'mi', 'ju', 'vi', 'sa', 'do'], DIAS_NOMBRE = { lu: 'lun', ma: 'mar', mi: 'mié', ju: 'jue', vi: 'vie', sa: 'sáb', do: 'dom' };
+function nombresDias(ds) {
+  const veces = d => ds.filter(x => x === d).length;
+  const n = DIAS_ORDEN.filter(d => veces(d)).map(d => DIAS_NOMBRE[d] + (veces(d) === 2 ? ' (doble)' : veces(d) > 2 ? ' (' + veces(d) + ' funciones)' : ''));
+  return n.length > 1 ? n.slice(0, -1).join(', ') + ' y ' + n[n.length - 1] : n.join('');
+}
+const anioTemporada = () => S.config.fin_temporada ? anio(dn(S.config.fin_temporada)) : new Date().getFullYear();
+// "2026-10-25,2026-11-01" -> "25/10, 1/11"
+function sinFuncionTexto(v) {
+  return String(v || '').split(',').filter(Boolean).map(x => { const [y, m, d] = x.split('-').map(Number); return d + '/' + m + (y !== anioTemporada() ? '/' + y : ''); }).join(', ');
+}
+// "25/10, 1/11" -> "2026-10-25,2026-11-01". Devuelve null si alguna fecha no se entiende.
+function sinFuncionIso(txt) {
+  const out = [];
+  for (const t of String(txt || '').split(/[,;\s]+/).filter(Boolean)) {
+    let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/), y, mo, d;
+    if (m) [y, mo, d] = [+m[1], +m[2], +m[3]];
+    else if ((m = t.match(/^(\d{1,2})[\/\-.](\d{1,2})(?:[\/\-.](\d{2,4}))?$/))) [d, mo, y] = [+m[1], +m[2], m[3] ? (+m[3] < 100 ? 2000 + +m[3] : +m[3]) : anioTemporada()];
+    else return null;
+    if (!(mo >= 1 && mo <= 12 && d >= 1 && d <= 31)) return null;
+    out.push(y + '-' + ('0' + mo).slice(-2) + '-' + ('0' + d).slice(-2));
+  }
+  return out.join(',');
 }
 
 /* ============ DATOS ============ */
 let S = { obras: [], conteos: [], reimpresiones: [], config: {} };
 let filtroSala = 'Todas', corrigiendo = null; // id del conteo que se está corrigiendo
-const LS_DEMO = 'pdm-demo-v5', LS_CLAVE = 'pdm-clave', LS_QUIEN = 'pdm-quien', LS_APRUEBA = 'pdm-aprueba';
+const LS_DEMO = 'pdm-demo-v7', LS_CLAVE = 'pdm-clave', LS_QUIEN = 'pdm-quien', LS_APRUEBA = 'pdm-aprueba';
 const ls = { get(k) { try { return localStorage.getItem(k); } catch (e) { return null; } }, set(k, v) { try { localStorage.setItem(k, v); } catch (e) {} }, del(k) { try { localStorage.removeItem(k); } catch (e) {} } };
 const slug = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'obra';
 
@@ -515,15 +639,21 @@ function contado(r) {
 // Dos líneas por obra: qué hay y qué hacer.
 function textos(r, hoy) {
   const quedan = r.ultimo ? `Quedan ${nf(r.stockHoy)}` : '';
+  const hasta = r.agot == null ? '' : r.agot < hoy ? (r.conCalendario ? `sin programas desde la función del ${ff(r.agot)}` : `se habrían acabado el ${ff(r.agot)}`)
+    : r.conCalendario ? `primera función sin programas: ${ff(r.agot)}` : `se acaban el ${ff(r.agot)}`;
   switch (r.estado) {
-    case 'rojo': return [`${quedan} · se acaban el ${ff(r.agot)}`,
-      r.vencido ? `Ya es tarde: aunque se empiece hoy, faltan programas ${dias(r.diasSin)}.` : `Empezar la reimpresión esta semana. Último día: ${ff(r.limite)}.`];
-    case 'amarillo': return [`${quedan} · se acaban el ${ff(r.agot)}`, `Empezar la reimpresión antes del ${ff(r.limite)}.`];
+    case 'rojo': return [`${quedan} · ${hasta}`,
+      !r.vencido ? `Empezar la reimpresión esta semana. Último día: ${ff(r.limite)}.`
+        : r.sinSentido ? `Una reimpresión ya no llega antes de la última función (${ff(r.baja)}).`
+        : r.conCalendario ? `Ya es tarde: aunque se empiece hoy, ${r.funcionesSin === 1 ? 'queda 1 función' : 'quedan ' + r.funcionesSin + ' funciones'} sin programas.`
+        : `Ya es tarde: aunque se empiece hoy, faltan programas ${dias(r.diasSin)}.`];
+    case 'amarillo': return [`${quedan} · ${hasta}`, `Empezar la reimpresión antes del ${ff(r.limite)}.`];
     case 'verde': return r.sinConsumo ? [`${quedan} · no bajó entre los últimos conteos`, '']
-      : [`${quedan} · se acaban el ${ff(r.agot)}`, `${r.espera ? 'Vuelve el ' + ff(r.inicio) + '. ' : ''}Empezar la reimpresión antes del ${ff(r.limite)}.`];
-    case 'alcanza': return [`${quedan} · alcanzan hasta ${r.bajaEsFin ? 'el fin de temporada' : 'la baja'} (${ff(r.baja)})`, 'No hace falta reimprimir.'];
+      : [`${quedan} · ${hasta}`, `${r.espera ? 'Vuelve el ' + ff(r.inicio) + '. ' : ''}Empezar la reimpresión antes del ${ff(r.limite)}.`];
+    case 'alcanza': return [`${quedan} · alcanzan hasta ${r.bajaEsFin ? 'el fin de temporada' : 'la última función'} (${ff(r.baja)})`, 'No hace falta reimprimir.'];
     case 'inconsistente': return [`El conteo subió de ${nf(r.previo.stock)} a ${nf(r.ultimo.stock)}`, 'Falta anotar una reimpresión o corregir el conteo.'];
-    case 'un-conteo': return [`${quedan} · hay un solo conteo`, 'Con el próximo conteo se sabe para cuánto alcanza.'];
+    case 'un-conteo': return r.sinFuncionesEntreConteos ? [`${quedan} · no hubo funciones entre los conteos`, 'Hace falta un conteo después de una función.']
+      : [`${quedan} · hay un solo conteo`, 'Con el próximo conteo se sabe para cuánto alcanza.'];
     case 'espera': return r.otraTemporada ? [`${quedan} de la temporada ${anio(r.fin)}`, `Vuelve el ${ff(r.inicio)}, con programa nuevo.`] : [`${quedan} guardados`, `Vuelve el ${ff(r.inicio)}.`];
     case 'cerrada': return [quedan, `Terminó la temporada ${anio(r.fin)}.`];
     default: return [r.espera ? `Estrena el ${ff(r.inicio)}` : 'Todavía no se contó', 'Falta el primer conteo.'];
@@ -531,13 +661,23 @@ function textos(r, hoy) {
 }
 
 function detalle(r, hoy) {
-  const li = [];
-  if (r.agot != null && r.estado !== 'alcanza') {
-    li.push(['Empezar actualización (logos, cambios)', ff(r.limite)], ['Mandar a imprenta', ff(r.finArreglos)], ['Se acaban los programas', ff(r.agot)]);
-    li.push([r.bajaEsFin ? `Cuánto pedir para la temporada ${anio(r.fin)}` : 'Cuánto pedir', `~${nf(r.sugerido)} (${r.baja != null ? 'hasta el ' + ff(r.baja) : Math.round(r.semanasSug) + ' semanas más'})`]);
+  const li = [], funcs = n => n === 1 ? '1 función' : n + ' funciones';
+  if (r.agot != null) {
+    li.push(['Empezar actualización (logos, cambios)', ff(r.limite)], ['Mandar a imprenta', ff(r.finArreglos)]);
+    if (r.conCalendario) {
+      if (r.cubierta != null) li.push(['Última función con programas', ff(r.cubierta)]);
+      li.push(['Primera función sin programas', ff(r.agot)]);
+    } else li.push(['Se acaban los programas', ff(r.agot)]);
+    li.push([r.bajaEsFin ? `Cuánto pedir para la temporada ${anio(r.fin)}` : 'Cuánto pedir',
+      r.sinSentido ? 'Nada: ya no llega' : `~${nf(r.sugerido)} (${r.conCalendario ? funcs(r.funcionesAPedir) + ', ' : ''}hasta el ${ff(r.pedirHasta)})`]);
   }
-  if (r.porSemana != null) li.push(['Se usan por semana', nf(r.porSemana)]);
   if (r.porFuncion != null) li.push(['Se usan por función', nf(r.porFuncion)]);
+  if (r.porSemana != null) li.push(['Se usan por semana', nf(r.porSemana)]);
+  if (r.conCalendario) {
+    li.push(['Días de función', esc(nombresDias(r.dias)) + (r.obra.sin_funcion ? ' · sin función ' + esc(sinFuncionTexto(r.obra.sin_funcion)) : '')]);
+    if (r.funcionesRestantes != null) li.push(['Funciones que quedan', r.funcionesRestantes]);
+  }
+  if (r.baja != null) li.push([r.bajaEsFin ? 'Fin de temporada' : 'Última función', ff(r.baja)]);
   if (r.ultimo) li.push(['Último conteo', `${nf(r.ultimo.stock)} · ${cuando(r.ultimo, hoy)}`]);
   r.pendientes.forEach(p => li.push(['Conteo sin aprobar', `${nf(p.stock)} · ${esc(p.contado_por)}, ${cuando(p, hoy)}`]));
   li.push(['Sala', esc(r.obra.sala || '')]);
@@ -646,10 +786,13 @@ function renderAprobar() {
 }
 
 function renderObras() {
-  $('ob-lista').innerHTML = S.obras.map(o => `<div class="obra-item"><div><strong>${esc(o.nombre)}</strong><small>${[
-    esc(o.sala), +o.funciones_semana > 0 ? (+o.funciones_semana === 1 ? '1 función' : esc(o.funciones_semana) + ' funciones') + ' por semana' : '', o.fecha_inicio && dn(o.fecha_inicio) > hoyN() ? 'sin funciones hasta ' + ff(dn(o.fecha_inicio)) : '', o.fecha_baja ? 'baja ' + ff(dn(o.fecha_baja)) : '',
+  $('ob-lista').innerHTML = S.obras.map(o => { const ds = listaDias(o.dias_funcion); return `<div class="obra-item"><div><strong>${esc(o.nombre)}</strong><small>${[
+    esc(o.sala),
+    ds.length ? 'funciones: ' + esc(nombresDias(ds)) : +o.funciones_semana > 0 ? (+o.funciones_semana === 1 ? '1 función' : esc(o.funciones_semana) + ' funciones') + ' por semana' : '',
+    o.sin_funcion ? 'sin función ' + esc(sinFuncionTexto(o.sin_funcion)) : '',
+    o.fecha_inicio && dn(o.fecha_inicio) > hoyN() ? 'empieza el ' + ff(dn(o.fecha_inicio)) : '', o.fecha_baja ? 'última función ' + ff(dn(o.fecha_baja)) : '',
     o.activa === false || o.activa === 'FALSE' ? 'fuera de cartel' : ''].filter(Boolean).join(' · ')}</small></div>
-    <button type="button" data-editar="${esc(o.id)}">Editar</button></div>`).join('') || '<p class="vacio">Todavía no hay obras.</p>';
+    <button type="button" data-editar="${esc(o.id)}">Editar</button></div>`; }).join('') || '<p class="vacio">Todavía no hay obras.</p>';
 }
 
 function render() { renderTablero(); renderContar(); renderAprobar(); renderObras(); }
@@ -659,6 +802,10 @@ function editarObra(o) {
   if (o && o.sala && ![...$('ob-sala').options].some(x => x.value === o.sala)) $('ob-sala').add(new Option(o.sala));
   $('ob-sala').value = o ? o.sala : 'Sala 1';
   $('ob-func').value = o ? o.funciones_semana : ''; $('ob-baja').value = o ? o.fecha_baja : ''; $('ob-inicio').value = o ? (o.fecha_inicio || '') : '';
+  const ds = o ? listaDias(o.dias_funcion) : [];
+  document.querySelectorAll('#ob-dias input').forEach(i => { i.checked = ds.includes(i.value); });
+  document.querySelectorAll('#ob-dobles input').forEach(i => { i.checked = ds.filter(x => x === i.value).length > 1; });
+  $('ob-sin').value = o ? sinFuncionTexto(o.sin_funcion) : '';
   $('ob-activa').checked = o ? !(o.activa === false || o.activa === 'FALSE') : true;
   $('ob-titulo').textContent = o ? 'Editar obra' : 'Agregar obra';
   $('ob-cancelar').hidden = !o;
@@ -800,7 +947,13 @@ function iniciar() {
     e.preventDefault();
     const nombre = $('ob-nombre').value.trim();
     if (!nombre) return aviso('La obra necesita un nombre.', true);
-    const ok = await enviar({ action: 'obra', obra: { id: $('ob-id').value, nombre, sala: $('ob-sala').value, funciones_semana: $('ob-func').value, fecha_inicio: $('ob-inicio').value, fecha_baja: $('ob-baja').value, activa: $('ob-activa').checked } },
+    const dobles = [...document.querySelectorAll('#ob-dobles input:checked')].map(x => x.value);
+    const ds = [...document.querySelectorAll('#ob-dias input:checked')].flatMap(x => dobles.includes(x.value) ? [x.value, x.value] : [x.value]), sin = sinFuncionIso($('ob-sin').value);
+    if (dobles.some(d => !ds.includes(d))) return aviso('Marcaste doble función en un día que no tiene función. Marcalo también arriba, en días de función.', true);
+    if (sin == null) { $('ob-sin').focus(); return aviso('No entendí alguna de las fechas sin función. Escribilas como día/mes, separadas por coma: 25/10, 1/11.', true); }
+    const ok = await enviar({ action: 'obra', obra: { id: $('ob-id').value, nombre, sala: $('ob-sala').value,
+      funciones_semana: ds.length ? ds.length : $('ob-func').value, dias_funcion: ds.join(','), sin_funcion: sin,
+      fecha_inicio: $('ob-inicio').value, fecha_baja: $('ob-baja').value, activa: $('ob-activa').checked } },
       $('ob-guardar'), 'Obra guardada');
     if (ok) editarObra(null);
   });

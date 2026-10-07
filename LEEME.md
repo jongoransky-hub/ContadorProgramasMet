@@ -100,10 +100,15 @@ En la pestaña Avisos queda el registro de todo lo que se mandó.
 
 ## Cosas a saber
 
-- **La cuenta.** El consumo sale de la diferencia entre conteos aprobados (sumando las reimpresiones que entraron), promediando los últimos cuatro períodos. Con un solo conteo no hay proyección.
-- **Cuánto pedir.** Es el consumo por semana multiplicado por las semanas que van desde que se acaban los programas hasta el fin de temporada (o hasta la baja de la obra, si es antes), redondeado para arriba a la centena. Si el stock alcanza hasta el fin de temporada, no se pide nada. Nunca calcula más allá de `fin_temporada`: una obra que sigue al año siguiente va con programa nuevo (logos, auspicios y ficha técnica).
+- **La cuenta, función por función.** Cada obra tiene su calendario: días de la semana con función, fechas sin función, estreno y última función. El consumo por función sale de dividir los programas usados entre dos conteos aprobados por las funciones que hubo en el medio (últimos cuatro períodos). Después la app recorre las funciones que quedan y marca la primera que se queda sin programas. Con un solo conteo no hay proyección.
+- **Obras sin días cargados.** Si una obra no tiene días de función marcados, el consumo se reparte parejo por día. Sirve como aproximación para las que tienen cuatro o cinco funciones por semana.
+- **Cuándo contar.** Un conteo hecho el día de una función se toma como previo a esa función. Conviene contar siempre antes de la función.
+- **Función cubierta.** Una función cuenta como cubierta si queda al menos la mitad de los programas que suele usar.
+- **Cuánto pedir.** Es el consumo por función multiplicado por las funciones que van desde que llega la reimpresión hasta la última función de la obra (o hasta el fin de temporada, lo que llegue antes), redondeado para arriba a la centena. Si el stock alcanza, no se pide nada. Nunca calcula más allá de `fin_temporada`: una obra que sigue al año siguiente va con programa nuevo (logos, auspicios y ficha técnica).
+- **Si una reimpresión ya no llega.** Cuando las tres semanas de plazo terminan después de la última función, la app lo dice y no sugiere reimprimir.
 - **Reimpresiones.** Cada tanda que llega de la imprenta hay que registrarla en Aprobar > Reimpresión recibida. Si no, el próximo conteo aparece como un stock que subió solo.
 - **Correcciones.** En el tablero, tocá una obra y después **Corregir** en el conteo que quieras cambiar. Se puede cambiar el número, la fecha o eliminarlo. Nada se borra del Sheet: un conteo eliminado queda como `descartado`.
-- **Obras.** Altas, funciones por semana, estreno o regreso y fecha de baja se editan en la pestaña Obras de la app.
+- **Obras.** Altas, días de función, fechas sin función, estreno o regreso y última función se editan en la pestaña Obras de la app.
+- **Calendario 2026.** La función `cargarTemporada2026` del script carga de una vez las últimas funciones, los días y las pausas de la temporada. Se ejecuta a mano una sola vez desde el editor del script.
 - **Qué queda público.** El repositorio es público y la dirección del script se ve en el código. Cualquiera que la tenga puede leer el stock y enviar un conteo pendiente. Aprobar, corregir y editar piden la clave. La clave y los mails nunca salen del Sheet.
 - **Si se cambia `Code.gs`:** Implementar > Gestionar implementaciones > editar > **Nueva versión**. La URL no cambia.
