@@ -91,6 +91,14 @@ button, input, select { font: inherit; color: inherit; }
 
 .lista { background: var(--surface); border: 1px solid var(--line); }
 .obra { border-bottom: 1px solid var(--line); }
+/* Estimación por venta + invitados (solo gestión, en prueba) */
+.o-e { display: block; margin-top: 4px; font-size: 13px; color: var(--muted); }
+.o-e b { color: var(--ink); font-weight: 600; }
+.est { margin-top: 14px; border: 1px dashed var(--line); border-radius: 8px; padding: 12px 14px; background: var(--surface); }
+.est-t { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin: 0 0 8px; font: 700 12px/1.2 var(--f-body); letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.est-chip { font-size: 11px; letter-spacing: .04em; padding: 3px 8px; border-radius: 999px; background: var(--warn-bg); color: var(--warn); }
+.est ul.ciclo { margin: 0; }
+.est-n { margin: 10px 0 0; font-size: 13px; color: var(--muted); }
 .obra:last-child { border-bottom: 0; }
 .obra summary { list-style: none; cursor: pointer; padding: 14px; display: flex; flex-direction: column; gap: 8px; }
 .obra summary::-webkit-details-marker { display: none; }
@@ -698,7 +706,30 @@ function detalle(r, hoy) {
     </form>`;
   }
   if (r.reimps.length) h += `<ul class="ciclo" style="margin-top:14px">${r.reimps.map(x => `<li><span>Reimpresión del ${ff(dn(x.fecha))}</span><span>+${nf(x.cantidad)}</span></li>`).join('')}</ul>`;
+  h += estDetalle(r);
   return h;
+}
+
+// Estimación por venta + invitados que escribe la central de listados (pestaña Estimacion). Solo gestión, en prueba.
+function estDe(id) { return (S.estimacion || []).find(e => e && e.obra_id === id && e.actualizado) || null; }
+function estLinea(r) {
+  const e = estDe(r.obra.id); if (!e || e.deberia_quedar === '' || e.deberia_quedar == null) return '';
+  return `<span class="o-e">Estimado por venta + invitados (en prueba): deberían quedar <b>~${nf(+e.deberia_quedar)}</b></span>`;
+}
+function estDetalle(r) {
+  const e = estDe(r.obra.id); if (!e) return '';
+  const li = [];
+  if (e.ultimo_conteo) {
+    li.push(['Desde el conteo del ' + ff(dn(e.ultimo_conteo)), `${+e.funciones_desde_conteo === 1 ? '1 función' : nf(+e.funciones_desde_conteo) + ' funciones'} · ${nf(+e.personas_desde_conteo)} personas (venta + invitados)`]);
+    li.push(['Se habrían usado', '~' + nf(+e.estimado_usado) + ' (personas / 2)']);
+    li.push(['Deberían quedar', '~' + nf(+e.deberia_quedar) + (+e.reimpreso_despues ? ` (con la reimpresión de ${nf(+e.reimpreso_despues)})` : '')]);
+  }
+  String(e.prox_semanas || '').split(' ').filter(Boolean).forEach(x => { const [f, p, n] = x.split(':'); li.push([`Semana del ${ff(dn(f))}${dn(f) <= hoyN() ? ' (esta)' : ''}`, `~${nf(+p)} · ${+n === 1 ? '1 función' : n + ' funciones'}`]); });
+  if (e.tramo_real !== '' && e.tramo_real != null) li.push([`Último tramo contado (${ff(dn(e.tramo_desde))} al ${ff(dn(e.tramo_hasta))})`, `se usaron ${nf(+e.tramo_real)}; la estimación decía ~${nf(+e.tramo_estimado)}` + (e.programas_por_persona !== '' ? ` · ${String(e.programas_por_persona).replace('.', ',')} por persona` : '')]);
+  if (!li.length) return '';
+  return `<div class="est"><p class="est-t">Estimación por venta + invitados <span class="est-chip">En prueba · aprendiendo</span></p>
+    <ul class="ciclo">${li.map(([k, v]) => `<li><span>${k}</span><span>${v}</span></li>`).join('')}</ul>
+    <p class="est-n">Cuenta las personas en sala (vendidas + invitaciones) y supone un programa cada dos. Todavía se está calibrando: con cada conteo se compara contra lo real. El dato real es el conteo de sala; esto es una referencia, no reemplaza contar.</p></div>`;
 }
 
 function activas(hoy) { return S.obras.filter(o => o.activa !== false && o.activa !== 'FALSE' && !(o.fecha_baja && dn(o.fecha_baja) < hoy)); }
@@ -727,13 +758,13 @@ function renderTablero() {
       if (g.compacto) {
         const der = r.estado === 'alcanza' ? `<strong>Alcanza</strong> hasta el ${ff(r.baja)}` : al ? `<strong>${al.n} ${al.u}</strong> · hasta el ${ff(r.agot)}` : 'No bajó entre conteos';
         return `<details class="o cmp" id="${esc(id)}"${open.has(id) ? ' open' : ''}>
-          <summary><span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span>${conteoViejo(r) ? contado(r) : ''}</span><span class="cmp-r">${der}</span></summary>
+          <summary><span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span>${conteoViejo(r) ? contado(r) : ''}${estLinea(r)}</span><span class="cmp-r">${der}</span></summary>
           <div class="o-det">${detalle(r, hoy)}</div>
         </details>`;
       }
       return `<details class="o" id="${esc(id)}"${open.has(id) ? ' open' : ''}>
         <summary>
-          <span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span><span class="o-s">${que}</span>${hacer ? `<span class="o-a">${hacer}</span>` : ''}${contado(r)}</span>
+          <span class="o-l"><span class="o-n">${esc(r.obra.nombre)}</span><span class="o-s">${que}</span>${hacer ? `<span class="o-a">${hacer}</span>` : ''}${contado(r)}${estLinea(r)}</span>
           ${al ? `<span class="o-r"><span class="o-k">Alcanza para</span><span class="o-w">${al.n}</span><span class="o-u">${al.u}</span></span>` : ''}
         </summary>
         <div class="o-det">${detalle(r, hoy)}</div>
